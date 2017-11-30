@@ -1,15 +1,44 @@
 (in-package :gir)
 
+(eval-when (load eval compile)
+(defvar *override-cache* nil)
+
+;; override alexandria method
+(defmacro ensure-gethash (key hash-table &optional default)
+  "Like GETHASH, but if KEY is not found in the HASH-TABLE saves the
+DEFAULT under key before returning it. Secondary return value is true
+if key was already in the table."
+  (let ((key-var (gensym "KEY"))
+	(hash-table-var (gensym "HASH"))
+	(value (gensym "VALUE"))
+	(presentp (gensym "PRESENTP")))
+    `(let ((,key-var ,key)
+	   (,hash-table-var ,hash-table))
+       ;;(warn "~S" (list 'ensure-gethash ,key-var ,hash-table-var))
+       (multiple-value-bind (,value ,presentp)
+	   (gethash ,key-var ,hash-table-var)
+         (if (and ,presentp (not *override-cache*))
+             (values ,value ,presentp)
+             (values (setf (gethash ,key-var ,hash-table-var) ,default)
+		     nil))))))
+
 (defmacro ensure-gethash-unless-null (key hash-table default &optional on-nil)
-  (with-gensyms (value nvalue vkey vhash-table)
+  (let ((value (gensym "VALUE"))
+	(nvalue (gensym "NVALUE"))
+	(vkey (gensym "VKEY"))
+	(vhash-table (gensym "VHASH-TABLE")))
     `(let ((,vkey ,key)
 	   (,vhash-table ,hash-table))
-       (if-let ((,value (gethash ,vkey ,vhash-table)))
-	 (values ,value t)
-	 (values (if-let ((,nvalue ,default))
-		   (setf (gethash ,vkey ,vhash-table) ,nvalue)
-		   (progn ,on-nil nil))
-		 nil)))))
+       ;;(warn "~S" (list 'ensure-gethash-unless-null ,vkey ,vhash-table))
+       (let ((,value (gethash ,vkey ,vhash-table)))
+	 (if (and ,value (not *override-cache*))
+	     (values ,value t)
+	     (values (if-let ((,nvalue ,default))
+		       (setf (gethash ,vkey ,vhash-table) ,nvalue)
+		       (progn ,on-nil nil))
+		     nil))))))
+)
+
 
 (defgeneric nsget (namespace name))
 (defgeneric build-interface (info))
