@@ -2,7 +2,7 @@
 
 (defpackage #:gir
   (:use #:common-lisp #:alexandria #:iterate)
-  (:shadow #:get-properties)
+  (:shadow #:get-properties #:ensure-gethash)
   (:export
    #:argument
    #:base-info
