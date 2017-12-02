@@ -722,7 +722,12 @@
 (defun elt+ (data array-length methodp)
   (nth (+ array-length (if methodp 1 0)) data))
 
+(defvar *debug* nil)
+(defun format-debug (stream fmt &rest args)
+  (and *debug* (apply #'format stream fmt args)))
+
 (defun make-args-data (info &optional methodp)
+  (format-debug t "MAKE-ARGS_DATA(~S :methodp ~S)~&" (info-get-name info) methodp)
   ;; if construct + in-arg
   (let* ((n-args (g-callable-info-get-n-args info))
 	 (args-data
@@ -731,16 +736,29 @@
 	 (in-count (length args-data))
 	 (out-count 0)
 	 (in-array-length-count 0))
+    (format-debug t "~&1: ~S~&" (list :n-args n-args))
     (dotimes (i n-args)
       (let* ((arg (g-callable-info-get-arg info i))
              (direction (arg-info-get-direction arg))
 	     (arg-data (make-instance 'arg-data :arg-info arg)))
+	(format-debug t "~&: get-arg: ~S. dir=~S. data=~S~&" arg direction
+		      (list :name (name-of arg-data)
+			    :contained-type
+			    (cons
+			     (contained-type-of (gir-type-of arg-data))
+			     (let ((o (contained-type-of
+				       (gir-type-of arg-data))))
+			       (cond ((typep o 'gir::builtin-type)
+				      (list (gir::cffi-type-of o)))
+				     ((typep o 'gir::pointer-type)
+				      (list (gir::pointed-type-of o))))))))
 	(ecase direction
 	  (:in (incf in-count))
 	  (:in-out (incf in-count) (incf out-count))
 	  (:out (incf out-count)))
 	(push arg-data args-data)))
     (setf args-data (nreverse args-data))
+    (format-debug t "~&2: ~S~&" (list :args-data args-data))
     (loop
        :for arg-data :in args-data
        :for array-length = (array-length-of arg-data) 
@@ -980,6 +998,11 @@
     (multiple-value-bind (args-data in-count out-count in-array-length-count)
 	(make-args-data info)
       (declare (ignore in-count out-count in-array-length-count))
+      (format-debug t "shared-initialize(callable-desc): make-args-info(~S): ~S"
+		    (info-get-name info)
+		    (list :args-data args-data :in-count in-count
+			  :out-count out-count
+			  :in-array-length-count in-array-length-count))
       (let ((ret-data (make-instance 'return-data :callable-info info
 				     :return-interface return-interface))
 	    (in-args-desc nil)
