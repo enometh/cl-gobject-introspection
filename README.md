@@ -70,7 +70,7 @@ be seen as parameters.
 (gir:nget repository enum-name enum-value-name) -> integer
   repositry : repository
   enum-name : (or string symbol)
-  enum-value-name : (or string symbol)
+  enum-value-name : keyword
 (gir:nget repository class-name constructor-name) -> function
   repositry : repository
   class-name : (or string symbol)
