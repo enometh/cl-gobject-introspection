@@ -1,6 +1,7 @@
 
 (in-package :cl-user)
 
+#+nil
 (ql:quickload '(;; "cffi"
                 ;; "cffi-objects"
                 "cl-gobject-introspection"
@@ -9,9 +10,11 @@
                 ;; is quite poor
                 "cl-cairo2"))
 
-(let ((*default-pathname-defaults* 
-        (merge-pathnames #P"examples/maze/src/"
-                         (asdf:system-source-directory "cl-gobject-introspection"))))
+(require 'cl-gir)
+(require 'cl-cairo2)
+
+(let ((*default-pathname-defaults*  #p"/dev/shm/gir/examples/maze/src/"
+	))
   (load #P"./package.lisp") 
   (load #P"./maze.lisp")
   (load #P"./maze-generator.lisp")
@@ -27,7 +30,11 @@
 (defparameter *maze*
   (generate-maze 10 8))
 
-(edit-maze-in-window! *maze*)
+(require 'bordeaux-threads)
+(defvar $t1 (bordeaux-threads:make-thread
+	     (lambda ()
+	       (edit-maze-in-window! *maze*))
+	     :name "Edit in maze"))
 
 
 (walk-through-maze *maze*)
