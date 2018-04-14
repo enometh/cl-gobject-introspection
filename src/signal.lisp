@@ -22,6 +22,8 @@
   (data :pointer)
   (notifiers :pointer))
 
+(defvar *user-data* nil)
+
 (cffi:defcallback marshal :void ((closure :pointer)
                                  (return :pointer)
                                  (n-values :int)
@@ -30,6 +32,8 @@
                                  (data :pointer))
   (declare (ignore hint data))
   (let ((lisp-func (trampoline-get-function closure))
+	(*user-data* (cffi:foreign-slot-value closure '(:struct g-closure)
+					      'data))
         (lisp-params 
           (loop
             :for i :below n-values
@@ -50,10 +54,10 @@
   (declare (ignore data))
   (destroy-trampoline closure))
 
-(defun make-closure (func)
+(defun make-closure (func &optional (data-ptr (cffi:null-pointer)))
   (let* ((g-closure-size (cffi:foreign-type-size '(:struct g-closure)))
          (closure-ptr (g-closure-new-simple
-                       g-closure-size (cffi:null-pointer)))) ;; sizeof(GClosure) = 16
+                       g-closure-size data-ptr))) ;; sizeof(GClosure) = 16
     (make-trampoline func closure-ptr)
     (g-closure-set-marshal closure-ptr (cffi:callback marshal))
     (g-closure-add-finalize-notifier closure-ptr
@@ -71,11 +75,16 @@
       (cffi:foreign-pointer value)
       (null (cffi:null-pointer)))))
 
-(defun connect (g-object signal c-handler &key after swapped)
+(defun connect (g-object signal c-handler &key after swapped data)
   (let* ((object-ptr (if (typep g-object 'object-instance)
                          (this-of g-object)
                          g-object))
          (str-signal (string-downcase signal))
+	 (data-ptr (if data
+		       (if (typep data 'object-instance)
+			   (this-of data)
+			   data)
+		       (cffi:null-pointer)))
          (c-handler (cond 
                       ((and (symbolp c-handler) (fboundp c-handler))
                        (symbol-function c-handler))
@@ -86,7 +95,7 @@
            (typecase c-handler
              (function (g-signal-connect-closure 
 			object-ptr str-signal
-			(make-closure c-handler)
+			(make-closure c-handler data-ptr)  ; XXX swapped ignored
 			after))
              (t (g-signal-connect-data object-ptr
                                        str-signal 
