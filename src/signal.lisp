@@ -7,6 +7,9 @@
 
 (cffi:defcfun g-closure-new-simple :pointer (sizeof :int) (data :pointer))
 
+(cffi:defcfun g-cclosure-new :pointer (sizeof :int) (data :pointer) (destroycb :pointer))
+(cffi:defcfun g-cclosure-new-swap :pointer (sizeof :int) (data :pointer) (destroycb :pointer))
+
 (cffi:defcfun g-closure-set-marshal :void (closure :pointer) (marshal :pointer))
 
 (cffi:defcfun g-signal-connect-closure :ulong
