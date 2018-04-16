@@ -143,4 +143,11 @@
   (destroy-data :pointer)
   (connect-flags connect-flags))
 
+(cffi:defcfun g-signal-connect-object :ulong
+  (instance :pointer)
+  (detailed-signal :string)
+  (c-handler :pointer)
+  (gobject :pointer)
+  (connect-flags connect-flags))
+
 #+sbcl (sb-int:set-floating-point-modes :traps nil)
