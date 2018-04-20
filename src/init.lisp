@@ -97,7 +97,21 @@
      (prog1
 	 ,body
        (unless (cffi:null-pointer-p (cffi:mem-ref ,err :pointer))
-	 (error "~A" (cffi:foreign-slot-value (cffi:mem-ref ,err :pointer) '(:struct g-error) 'message))))))
+	 (unwind-protect
+	      (error "~A" (cffi:foreign-slot-value (cffi:mem-ref ,err :pointer) '(:struct g-error) 'message))
+	   #+nil(cffi:foreign-funcall "g_error_free" :pointer ,err :void))))))
+
+#+nil
+(with-gerror err
+  (cffi:with-foreign-object (contents :pointer)
+    (cffi:foreign-funcall "g_file_get_contents"
+			  :string "/etc/passwd.1"
+			  :pointer contents
+			  :pointer (cffi:null-pointer)
+			  :pointer err)
+    (cffi:foreign-string-to-lisp (cffi:mem-ref contents :pointer))))
+
+
 
 (defmacro define-collection-getter (name get-count get-item)
   (let ((def-get-count (unless (listp get-count)
