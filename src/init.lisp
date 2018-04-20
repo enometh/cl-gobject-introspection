@@ -91,11 +91,11 @@
   (code :int)
   (message :string))
 
-(defmacro with-gerror (err &body body)
+(defmacro with-gerror (err body)
   `(cffi:with-foreign-object (,err :pointer)
      (setf (cffi:mem-ref ,err :pointer) (cffi:null-pointer))
      (prog1
-	 (progn ,@body)
+	 ,body
        (unless (cffi:null-pointer-p (cffi:mem-ref ,err :pointer))
 	 (error "~A" (cffi:foreign-slot-value (cffi:mem-ref ,err :pointer) '(:struct g-error) 'message))))))
 
