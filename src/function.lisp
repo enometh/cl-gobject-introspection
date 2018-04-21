@@ -140,6 +140,7 @@
 	   (value (if pointed-type
 		      (mem-get ptr pointed-type)
 		      ptr)))
+      #-(or ecl mkcl)
       (if (and (free-from-foreign-p type)
 	       (free-from-foreign-aggregated-p pointed-type))
 	  (cffi:foreign-free ptr))
@@ -450,7 +451,7 @@
   (let* ((ptr (cffi:mem-ref pos :pointer))
 	 (str (cffi:foreign-string-to-lisp ptr)))
     (when (free-from-foreign-p string-pointer-type)
-      #-ecl
+      #-(or ecl mkcl)
       (cffi:foreign-string-free ptr))
     str))
 
