@@ -166,3 +166,13 @@
       ((eq type +g-type-param+)     (g-value-set-param   gvalue value))
       ((eq type +g-type-object+)    (g-value-set-object  gvalue value))
       ((eq type +g-type-variant+)   (g-value-set-variant gvalue value)))))
+
+#||
+(defmethod gtype-from-instance ((object object-instance))
+  (let* ((object-class (gir-class-of object))
+	 (object-class-info (info-of object-class))
+	 (type-init-function
+	  (object-info-get-type-init object-class-info)))
+    (eval `(cffi:foreign-funcall (coerce ,type-init-function 'base-string)
+				 :ulong))))
+||#
