@@ -139,4 +139,13 @@
     (when value-p
       (set-value! ptr gtype value))
     ptr))
-  
+
+#||
+(defmethod gtype-from-instance ((object object-instance))
+  (let* ((object-class (gir-class-of object))
+	 (object-class-info (info-of object-class))
+	 (type-init-function
+	  (object-info-get-type-init object-class-info)))
+    (eval `(cffi:foreign-funcall (coerce ,type-init-function 'base-string)
+				 :ulong))))
+||#
