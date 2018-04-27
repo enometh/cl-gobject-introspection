@@ -118,3 +118,26 @@
                          (this-of g-object)
                          g-object)))
     (g-signal-handler-disconnect object-ptr id)))
+
+(defun signal-lookup (signal-name object)
+  "Return the signal id of the signal-name registered with object."
+  (let* ((gtype (gtype (this-of object))))
+    (eval `(cffi:foreign-funcall "g_signal_lookup"
+				 :string ,signal-name
+				 :long-long ,gtype
+				 :int))))
+
+(defun signal-handler-lookup (signal-name object)
+  "Return the handler id of the signal handler registered for the
+given signal with the object."
+  (let ((id (signal-lookup signal-name object)))
+    (cffi:foreign-funcall
+     "g_signal_handler_find"
+     :pointer (this-of object) ;instance
+     :int (nget (require-namespace "GObject") "SignalMatchType" :id) ;type
+     :int id
+     :int 0					;gquark
+     :pointer (cffi:null-pointer)
+     :pointer (cffi:null-pointer)
+     :pointer (cffi:null-pointer)
+     :int)))
