@@ -277,6 +277,27 @@
 	(build-callable-desc signal-info)
 	(error "~a is not signal name" cname))))
 
+(defmethod list-vfuncs-desc ((object-class object-class))
+  (let ((info (info-of object-class)))
+    (iter (for vfunc-info :in (object-info-get-vfuncs info))
+	  (collect (build-callable-desc vfunc-info)))))
+
+(defmethod object-class-find-vfunc-info ((object-class object-class) cname)
+  (let ((object-info (info-of object-class)))
+    (or (object-info-find-vfunc object-info cname)
+	(iter (for intf-info :in (object-info-get-interfaces object-info))
+	      (when-let ((vfunc-info (interface-info-find-vfunc intf-info cname)))
+		(return vfunc-info)))
+	(when-let ((parent (parent-of object-class)))
+	  (object-class-find-vfunc-info parent cname)))))
+
+(defmethod get-vfunc-desc ((object-class object-class) name)
+  (let* ((cname (c-name name))
+	 (vfunc-info (object-class-find-vfunc-info object-class cname)))
+    (if vfunc-info
+	(build-callable-desc vfunc-info)
+	(error "~a is not a virtual function name" cname))))
+
 (defclass interface-desc ()
   ((info :initarg :info :reader info-of)))
 
