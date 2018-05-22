@@ -76,6 +76,8 @@ if key was already in the table."
 (defgeneric list-constructors-desc (desc))
 (defgeneric list-signals-desc (desc))
 (defgeneric get-signal-desc (desc name))
+(defgeneric list-vfuncs-desc (desc))
+(defgeneric get-vfunc-desc (desc name))
 
 (defun nget-desc (namespace &rest names)
   (dolist (name names namespace)
