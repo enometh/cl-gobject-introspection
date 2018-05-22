@@ -180,6 +180,8 @@
    #:list-constructors-desc
    #:list-signals-desc
    #:get-signal-desc
+   #:list-vfuncs-desc
+   #:get-vfunc-desc
    #:interface-desc
    #:list-interfaces-desc
    #:struct-class
