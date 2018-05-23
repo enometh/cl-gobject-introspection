@@ -178,6 +178,7 @@
    #:get-method-desc
    #:list-class-functions-desc
    #:list-constructors-desc
+   #:get-constructor-desc
    #:list-signals-desc
    #:get-signal-desc
    #:list-vfuncs-desc
