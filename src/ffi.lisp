@@ -74,6 +74,7 @@ if key was already in the table."
 (defgeneric get-method-desc (desc name))
 (defgeneric list-class-functions-desc (desc))
 (defgeneric list-constructors-desc (desc))
+(defgeneric get-constructor-desc (desc name))
 (defgeneric list-signals-desc (desc))
 (defgeneric get-signal-desc (desc name))
 (defgeneric list-vfuncs-desc (desc))

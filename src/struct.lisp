@@ -138,3 +138,7 @@
     (iter (for method-info :in (struct-info-get-methods info))
 	  (when (constructor? (function-info-get-flags method-info))
 	    (collect (build-callable-desc method-info))))))
+
+(defmethod get-constructor-desc ((struct-class struct-class) name)
+  (when-let ((info (struct-class-get-constructor-info struct-class name)))
+    (build-callable-desc info  :return-interface (info-of struct-class))))
