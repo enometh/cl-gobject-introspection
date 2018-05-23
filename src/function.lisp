@@ -311,7 +311,8 @@
 	 nil
 	 (if-let ((obj (build-object-ptr gir-class ptr)))
 	   (if free-from-foreign
-	       (object-setup-gc obj :everything))
+	       (object-setup-gc obj :everything)
+	       obj)
 	   obj)))))
 
 (defmethod initialize-copy ((obj object-pointer-type) (copy object-pointer-type))
