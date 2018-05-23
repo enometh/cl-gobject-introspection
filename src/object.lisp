@@ -256,6 +256,12 @@
 	  (when (constructor? (function-info-get-flags method-info))
 	    (collect (build-callable-desc method-info :return-interface info))))))
 
+(defmethod get-constructor-desc ((object-class object-class) name)
+  (let ((info (info-of object-class)))
+    (when-let (method-info (object-info-find-method info name))
+      (when (constructor? (function-info-get-flags method-info))
+	(build-callable-desc method-info :return-interface info)))))
+
 (defmethod list-signals-desc ((object-class object-class))
   (let ((info (info-of object-class)))
     (iter (for signal-info :in (object-info-get-signals info))
