@@ -29,38 +29,6 @@
 
 (defvar *user-data* nil)
 
-(defstruct signal-closure
-  lisp-func
-  signal-info)
-
-
-(defun write-stack-backtrace (condition &optional n-frames (stream *standard-output*))
-  (let* ((frames (swank-backend:compute-backtrace 0 n-frames))
-	 (n-frames (length frames)))
-    (write-char #\Page stream)
-    (terpri stream)
-    (format stream "----------------- BACKTRACE ----------------~&")
-    (format stream "HANDLING: ")
-    (user::format-simple-condition condition stream)
-    (terpri stream)
-    (loop for i below n-frames do
-	  (format stream "~D: " i)
-	  (swank-backend:print-frame (elt frames i) stream)
-	  (terpri stream))
-    (format stream "---------------------- END -----------------------~&")))
-
-
-;;[Tue May 29 18:17:39 2018 +0530]
-
-(defmacro ignoring-errors (&body forms)
-  `(prog nil
-      (handler-bind ((error (lambda (error)
-			      (write-stack-backtrace error)
-			      (return))))
-	(return
-	  (swank-backend:call-with-debugging-environment
-	   (lambda () ,@forms))))))
-
 (cffi:defcallback marshal :void ((closure :pointer)
                                  (return :pointer)
                                  (n-values :int)
@@ -68,79 +36,36 @@
                                  (hint :pointer)
                                  (data :pointer))
   (declare (ignore hint data))
-  (ignoring-errors
-    (let*((lisp-func (signal-closure-lisp-func
-		      (gethash (cffi:pointer-address closure) *objects*)))
-	  (signal-info (signal-closure-signal-info
-			(gethash (cffi:pointer-address closure) *objects*)))
-	  (*user-data* (cffi:foreign-slot-value closure '(:struct g-closure)
-						'data))
-	  (lisp-params
-           (loop
-		 :for i :below n-values
-		 :collect
-		 (let* ((gvalue (cffi:mem-aptr
-				 params
-				 '(:struct g-value-struct)
-				 i))
-			(dummy
-			 (progn
-			   (format t "MARSHALLAR FOR SIGNAL ~A: arg=~D gtype=~D fundamental-type=~D~&"
-				   (info-get-name signal-info)
-				   i
-				   (gvalue-gtype gvalue)
-				   (g-type-fundamental (gvalue-gtype gvalue))
-				   )
-			   (cffi:foreign-funcall "g_type_ensure" :ulong (gvalue-gtype gvalue) :void)
-
-			   (format t "NAME=~A~&"
-				   (cffi:foreign-funcall "g_type_name" :ulong (gvalue-gtype gvalue) :string))
-			   (let ((f (g-type-fundamental (gvalue-gtype gvalue)))
-				 $pobject $gtypeinstance $gtypeclass $ogtype)
-			     (if (and (find f '(8 80))
-				      (setq $pobject (cffi:foreign-funcall
-						      "g_value_get_object"
-						      :pointer gvalue
-						      :pointer))
-				      (not (cffi:null-pointer-p $pobject)))
-				 (progn
-				   (setq $gtypeinstance $pobject)
-				   (setq $gtypeclass (cffi::mem-ref $gtypeinstance :pointer))
-				   (setq $ogtype (cffi:mem-ref $gtypeclass :ulong))
-				   (cffi:foreign-funcall "g_type_ensure" :ulong $ogtype :void)
-				   (format t "G_OBJECT_TYPE=~D  name=~S found?=~A parent-type=~D depth=~D~&"
-					   $ogtype
-					   (cffi:foreign-funcall "g_type_name" :ulong $ogtype :string)
-					   (repository-find-by-gtype nil $ogtype)
-					   (cffi:foreign-funcall "g_type_parent" :ulong $ogtype :ulong)
-					   (cffi:foreign-funcall "g_type_depth" :ulong $ogtype :int))
-					   )))) )
-			(val (ignoring-errors
-			       (gvalue->lisp/free gvalue (gvalue-gtype gvalue)
-						  :no-free t))))
-		   (declare (ignore dummy))
-		   (warn "val=~A" val)
-		   (ignoring-errors
-		     (if (typep val 'object-instance)
-			 (object-setup-gc val :nothing)
-			 val))))))
-      (let ((res (apply lisp-func lisp-params)))
-	(unless (cffi:null-pointer-p return)
-          (set-value! return (gvalue-gtype return) res))))))
+  (let ((lisp-func (gethash (cffi:pointer-address closure) *objects*))
+	(*user-data* (cffi:foreign-slot-value closure '(:struct g-closure)
+					      'data))
+	(lisp-params
+         (loop
+            :for i :below n-values
+            :collect 
+            (let* ((gvalue (cffi:mem-aptr
+			    params
+			    '(:struct g-value-struct)
+			    i))
+		   (val (gvalue->lisp/free gvalue (gvalue-gtype gvalue)
+					   :no-free t)))
+	      (if (typep val 'object-instance)
+		  (object-setup-gc val :nothing)
+		  val)))))
+    (let ((res (apply lisp-func lisp-params)))
+      (unless (cffi:null-pointer-p return)
+        (set-value! return (gvalue-gtype return) res)))))
 
 (cffi:defcallback free-closure :void ((data :pointer) (closure :pointer))
   (declare (ignore data))
   (when (not (cffi:null-pointer-p closure))
-    ;; TODO free signal-closure-signal-info
     (remhash (cffi:pointer-address closure) *objects*)))
 
-(defun make-closure (func &optional (data-ptr (cffi:null-pointer)) signal-info)
+(defun make-closure (func &optional (data-ptr (cffi:null-pointer)))
   (let* ((g-closure-size (cffi:foreign-type-size '(:struct g-closure)))
          (closure-ptr (g-closure-new-simple
                        g-closure-size data-ptr))) ;; sizeof(GClosure) = 16
-    (setf (gethash (cffi:pointer-address closure-ptr) *objects*)
-	  (make-signal-closure :lisp-func func
-			       :signal-info signal-info))
+    (setf (gethash (cffi:pointer-address closure-ptr) *objects*) func)
     (g-closure-set-marshal closure-ptr (cffi:callback marshal))
     (g-closure-add-finalize-notifier closure-ptr
                                      (cffi:null-pointer)
@@ -167,8 +92,6 @@
 			   (this-of data)
 			   data)
 		       (cffi:null-pointer)))
-	 (signal-info (object-class-find-signal-info (gir-class-of g-object)
-						     str-signal))
          (c-handler (cond 
                       ((and (symbolp c-handler) (fboundp c-handler))
                        (symbol-function c-handler))
@@ -179,7 +102,7 @@
           (typecase c-handler
             (function (g-signal-connect-closure 
                        object-ptr str-signal
-                       (make-closure c-handler data-ptr signal-info) ; XXX swapped ignored
+                       (make-closure c-handler data-ptr) ; XXX swapped ignored
 		       after))
             (t (g-signal-connect-data object-ptr
                                       str-signal 
