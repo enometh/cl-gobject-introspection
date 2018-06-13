@@ -21,6 +21,16 @@
 (%g-type-init)
 
 ;;
+;; unsafe type information
+;;
+
+(cffi:defcfun g-type-name :string
+  (gtype :ulong))
+
+(cffi:defcfun g-type-parent :ulong
+  (gtype :ulong))
+
+;;
 ;; memory management
 ;;
 
