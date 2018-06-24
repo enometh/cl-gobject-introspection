@@ -12,6 +12,14 @@
   ((class :initarg :class :reader gir-class-of)
    (this :initarg :this :reader this-of)))
 
+(defmethod print-object ((object object-instance) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (if (typep (gir-class-of object) 'fake-object-class)
+	(format stream "of type ~A" (gir-class-of object))
+	(let ((info (info-of (gir-class-of object))))
+	  (format stream "~A.~A" (info-get-namespace info)
+		  (info-get-name info ))))))
+
 (defclass object-class ()
   ((parent :initarg :parent :reader parent-of)
    (info :initarg :info :reader info-of)

@@ -10,6 +10,12 @@
   ((class :initarg :class :reader struct-class-of)
    (this :initarg :this :accessor this-of)))
 
+(defmethod print-object ((object struct-instance) stream)
+  (print-unreadable-object (object stream :type t :identity t)
+    (let ((info (info-of (struct-class-of object))))
+      (format stream "~A.~A" (info-get-namespace info)
+	      (info-get-name info)))))
+
 (defclass struct-class ()
   ((info :initarg :info :reader info-of)
    signals
