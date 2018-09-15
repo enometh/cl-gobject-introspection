@@ -142,7 +142,9 @@
 	 (floating? (g-object-is-floating this))
          (a (cffi:pointer-address this)))
     (if (eq transfer :everything)
-	(if floating? (g-object-ref-sink this))
+	(if floating?
+	    (g-object-ref-sink this)
+	    (g-object-ref this))
 	(g-object-ref this))
     (tg:finalize this (lambda () (g-object-unref (cffi:make-pointer a)))))
   object)
