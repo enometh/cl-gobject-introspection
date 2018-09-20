@@ -864,9 +864,7 @@
       (when (eq direction :in)
 	(let ((real-type
 	       (if is-array-type
-		   (copy-find-set-c-array-type-length
-                      type
-                      (slot-value length-arg 'value))
+		   (copy-find-set-c-array-type-length type (length arg-value))
 		   type)))
 	  (mem-free giarg real-type))))))
 
