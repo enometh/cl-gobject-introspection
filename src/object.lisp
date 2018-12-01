@@ -291,7 +291,7 @@
 	 (func-info (object-class-find-method-function-info object-class cname)))
     (if func-info
 	(build-callable-desc func-info)
-	(error "~a is not method name" cname))))
+	(error "~a is not a method name" cname))))
 
 (defmethod list-class-functions-desc ((object-class object-class))
   (let ((info (info-of object-class)))
