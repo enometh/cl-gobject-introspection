@@ -317,6 +317,13 @@
 (defclass interface-desc ()
   ((info :initarg :info :reader info-of)))
 
+(defmethod get-method-desc ((object-class interface-desc) cname)
+  (let ((func-info (interface-info-find-method
+		    (info-of object-class) cname)))
+    (if func-info
+	(build-callable-desc func-info)
+	(error "~a is not a method name" cname))))
+
 (defmethod find-build-method ((object-class interface-desc) cname)
   (let ((func-info (interface-info-find-method
 		    (info-of object-class) cname)))
