@@ -1,0 +1,49 @@
+;;; -*- Mode: LISP; Package: :cl-user; BASE: 10; Syntax: ANSI-Common-Lisp; -*-
+;;;
+;;;   Time-stamp: <>
+;;;   Touched: Sun Nov 26 07:13:24 2017 +0530 <enometh@meer.net>
+;;;   Bugs-To: enometh@meer.net
+;;;   Status: Experimental.  Do not redistribute
+;;;   Copyright (C) 2017 Madhu.  All Rights Reserved.
+;;;
+(in-package "CL-USER")
+
+(defvar *cl-gir-source-dir*
+  (merge-pathnames "cl-gobject-introspection/" (translate-logical-pathname "EXTERN:")))
+(defvar *cl-gir-binary-dir* (binary-directory *cl-gir-source-dir*))
+
+(mk:defsystem :cl-gir
+  :depends-on (:alexandria :cffi :iterate :trivial-garbage)
+  :source-pathname *cl-gir-source-dir*
+  :binary-pathname *cl-gir-binary-dir*
+  :source-extension "lisp"
+  :components
+  ((:file "src/package")
+   (:file "src/init" :depends-on ("src/package"))
+   (:file "src/typelib" :depends-on ("src/init"))
+   (:file "src/types" :depends-on ("src/package"))
+   (:file "src/baseinfo" :depends-on ("src/types"))
+   (:file "src/repository" :depends-on ("src/baseinfo"))
+   (:file "src/ffi" :depends-on ("src/baseinfo"))
+   (:file "src/function" :depends-on ("src/ffi"))
+   (:file "src/field" :depends-on ("src/ffi"))
+   (:file "src/object" :depends-on ("src/field"))
+;;   (:file "src/interface" :depends-on ("src/object"))
+;;   (:file "src/variant" :depends-on ("src/object"))
+   (:file "src/gvalue" :depends-on ("src/init"))
+   (:file "src/signal" :depends-on ("src/init"))
+   (:file "src/properties" :depends-on ("src/init"))
+   (:file "src/enum" :depends-on ("src/ffi"))
+   (:file "src/struct" :depends-on ("src/field"))
+   (:file "src/union" :depends-on ("src/field"))
+   (:file "src/utilities" :depends-on ("src/package"))
+   #+5am
+   (:module "test"
+    :source-pathname ""
+    :components ((:file "test/package")
+		 (:file "test/test1")
+		 (:file "test/test-generation")
+		 (:file "test/gir-test")))))
+
+#+nil
+(mk:oos :cl-gir :load :compile-during-load t)
