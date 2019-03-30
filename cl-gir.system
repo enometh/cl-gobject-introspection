@@ -34,6 +34,7 @@
    (:file "src/properties" :depends-on ("src/init"))
    (:file "src/enum" :depends-on ("src/ffi"))
    (:file "src/struct" :depends-on ("src/field"))
+   (:file "src/union" :depends-on ("src/field"))
    (:file "src/utilities" :depends-on ("src/package"))
    #+5am
    (:module "test"
