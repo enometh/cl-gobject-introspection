@@ -114,6 +114,20 @@
 (defun gvalue-gtype (gvalue)
   (cffi:foreign-slot-value gvalue '(:struct g-value-struct) 'g-type))
 
+(defun %gtype (x)
+  "Convert between keywords and (integer) gtypes. If the argument is a
+ keyword recognized in +FUNDAMENTAL-G-TYPES+ the corresponding integer
+ gtype is returned. If the argument is an integer recognized as a
+ gtype correspoding in +FUNDAMENTAL-G-TYPES+ denoting this gtype is
+ returned."
+  (etypecase x
+    (number (loop for i from 0 for type-name in +fundamental-g-types+
+		  when (>= i 2)
+		  if (= x (* i 4)) return type-name))
+    (keyword (loop for i from 0 for type-name in +fundamental-g-types+
+		   when (>= i 2)
+		   if (eq x type-name) return (* i 4)))))
+
 (defun ffi-enum (value gtype)
   (declare (ignore gtype))
   "Maybe later it will convert list of symbols to integer"
