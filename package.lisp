@@ -1,0 +1,9 @@
+(in-package "CL-USER")
+
+(defpackage "GTK-APP"
+  (:use "CL" "GIRLIB")
+  (:export
+   ;; gtk-app
+   "GTK-APPLICATION-MIXIN" "ACTIVATE" "RUN" "QUIT" "BUILDER-GET-OBJECT"
+   "ACTIVATE-WITH-BUILDER" "GTK-APPLICATION-BUILDER-MIXIN" "CONTAINER-VIEW"
+   ))
