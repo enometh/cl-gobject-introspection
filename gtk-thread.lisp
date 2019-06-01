@@ -1,0 +1,127 @@
+(in-package "GIR-LIB")
+
+;; GTK+, however, is not thread safe. You should only use GTK+ and GDK
+;; from the thread gtk_init() and gtk_main() were called on. This is
+;; usually referred to as the “main thread”.
+;;
+;; Signals on GTK+ and GDK types, as well as non-signal callbacks, are
+;; emitted in the main thread.
+
+;; dont even create a mainloop. just call the default main context
+;; iteration in its own thread.
+
+(defstruct (gtk-main (:constructor %make-gtk-main))
+  (thread nil)
+  (queue (make-array 0 :adjustable t :fill-pointer t)) ;task-queue
+  (source-id nil)     ;glib main-loop source to process the task-queue
+  (lock (bordeaux-threads:make-lock "gtk-task-queue-lock"))
+  (free-list nil))		  ; indices of removed thunks in queue
+
+(defvar *gtk-main* (%make-gtk-main))
+
+(cffi:defcallback process-gtk-main-task-queue :boolean ((user-data :pointer))
+  (with-slots (queue lock free-list) *gtk-main*
+    (let (index thunk)
+      (bordeaux-threads:with-lock-held (lock)
+	 (setq index (cffi:mem-ref user-data :int))
+	 (setq thunk (elt queue index))
+	 (push index free-list)		; delete it
+	 (setf (elt queue index) nil))
+      (with-simple-restart (skip-execution "Skip Executing this function")
+	(funcall thunk))))
+  (cffi:foreign-free user-data)
+  nil)
+
+(cffi:define-foreign-library (libX11)
+  (:unix "libX11.so"))
+
+(defun x11-init-threads ()
+  (cffi:load-foreign-library 'libX11)
+  (cffi:foreign-funcall "XInitThreads" :int))
+
+(defvar *gtk-main-kill-switch* nil)
+
+(defun run-gtk-main ()
+  "Enter the GTK main loop."
+  (user::cassert (zerop (gir:invoke (*gtk* "main_level")))) ; no nesting
+  (x11-init-threads)
+  (gir:invoke (*gtk* "init") nil)
+  ;; todo avoid call to maincontext
+  (prog ((default-context (gir:invoke (*glib* "main_context_default"))))
+   loop
+     (cond (*gtk-main-kill-switch* (return))
+	   (t (unwind-protect (gir:invoke (default-context "iteration") t)
+		(go loop)))))
+  (format t "Impossible! Leaving eternal damnation~&"))
+
+(defun start-gtk-thread ()
+  (when (find :bordeaux-threads *features*)
+    (with-slots (thread queue free-list) *gtk-main*
+      (cond ((and thread (bordeaux-threads:thread-alive-p thread))
+	       (format t "start-gtk-thread: already running~&"))
+	      (t (let ((nthunks (- (length queue) (length free-list))))
+		   (when (> nthunks 0)
+		     (format t "start-gtk-thread: blowing off ~D thunks~&"
+			     nthunks)
+		     (fill queue nil)
+		     (setf (fill-pointer queue) 0)
+		     (setq free-list nil)))
+		 (setq thread
+		       (bordeaux-threads:make-thread
+			#'run-gtk-main
+			:name "GTK-Main-Thread")))))))
+
+;; execute thunk in the default main context
+(defun gtk-enqueue (thunk)
+  (check-type thunk function)
+  (if (find :bordeaux-threads *features*)
+      (with-slots (lock queue free-list) *gtk-main*
+	(bordeaux-threads:with-lock-held (lock)
+	  (let ((index (pop free-list)))
+	    (if index
+		(setf (elt queue index) thunk)
+		(progn
+		  (setq index (length queue))
+		  (assert (= index (vector-push-extend thunk queue)))))
+	    (let ((loc (cffi:foreign-alloc :int :initial-element index))
+		  (default-context
+		   (gir:invoke (*glib* "main_context_default"))))
+	      (gir:invoke (default-context "invoke_full")
+			  0		;priority
+			  (cffi:callback process-gtk-main-task-queue)
+			  loc		      ;user-data
+			  (cffi:null-pointer) ;notifier
+			  )))))
+      (funcall thunk)))
+
+(defun apply-in-gtk-thread (function &rest args)
+  (gtk-enqueue (lambda () (apply function args))))
+
+(defmacro with-gtk-thread (&body body)
+  `(gtk-enqueue #'(lambda () ,@body)))
+
+;;; MAIN
+#+nil
+(start-gtk-thread)
+
+#+nil
+(progn (gtk-enqueue (lambda () (format t "OK1~%")))
+       (gtk-enqueue (lambda () (format t "OK2~%")))
+       (gtk-enqueue (lambda () (format t "OK3~%"))))
+
+#+nil
+(with-gtk-thread			;bogus
+  (gir:invoke (*gtk* "main_quit")))
+
+#+nil
+(with-gtk-thread
+  (format t "main depth=~D~&" (gir:invoke (*glib* "main_depth"))))
+
+#+nil
+(format t "main level=~D~&" (gir:invoke (*gtk* "main_level")))
+
+#+nil
+(bordeaux-threads:thread-alive-p (gtk-main-thread *gtk-main*))
+
+#+nil
+(gtk-main-queue *gtk-main*)
