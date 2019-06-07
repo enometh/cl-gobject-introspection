@@ -401,7 +401,8 @@ gboolean g_field_info_set_field (GIFieldInfo     *field_info,
 (cffi:defcfun (registered-type-info-get-type-init "g_registered_type_info_get_type_init") :string
   (registered-type-info info-ffi))
 
-(cffi:defcfun (registered-type-info-get-g-type "g_registered_type_info_get_g_type") :int
+
+(cffi:defcfun (registered-type-info-get-g-type "g_registered_type_info_get_g_type") :ulong
   (registered-type-info info-ffi))
 
 ;;;
