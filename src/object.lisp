@@ -174,6 +174,7 @@
 (defvar *fake-object-classes* (make-hash-table))
 
 (defun find-fake-object-class (gtype)   ; when gtype is not in g-i
+  (assert (not (repository-find-by-gtype nil gtype)) nil "~A is in GIR!" gtype)
   (let ((fundamental (g-type-fundamental gtype)))
     (when (or (= fundamental 8) (= fundamental 80))
       (assert (/= gtype 80))
@@ -181,8 +182,7 @@
           (setf (gethash gtype *fake-object-classes*)
                 (make-instance 'fake-object-class
                   :gtype gtype
-                  :name (cffi:foreign-funcall "g_type_name"
-                                              :ulong gtype :string)))))))
+                  :name (g-type-name gtype)))))))
 
 (defun gobject (gtype ptr)
   (let* ((info (repository-find-by-gtype nil gtype))
@@ -197,6 +197,20 @@
 	    (build-struct-ptr object-class ptr)))
         (error "gtype ~a not found in GI. Found ~a" 
                gtype info-type))))
+
+(defmethod find-build-method ((fake-object-class fake-object-class) cname)
+  ;; TODO: first check if cname is implemented locally and dispatch that.
+  (with-slots (gtype) fake-object-class
+    (let ((parent-gtype gtype) parent-info info)
+      (loop (cond ((zerop parent-gtype) (return))
+		  ((setq parent-gtype (g-type-parent parent-gtype))
+		   (when (setq parent-info
+			       (repository-find-by-gtype nil parent-gtype))
+		     (when (setq info (object-class-find-method-function-info
+				       (find-build-interface parent-info)
+				       cname))
+		       (return))))))
+      (and info (build-function info)))))
 
 (cffi:define-foreign-type pobject ()
   ()
