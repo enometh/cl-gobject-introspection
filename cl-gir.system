@@ -36,6 +36,11 @@
    (:file "src/struct" :depends-on ("src/field"))
    (:file "src/union" :depends-on ("src/field"))
    (:file "src/utilities" :depends-on ("src/package"))
+
+;; Experimental WIP
+   (:file "src/gi-type-query")
+   (:file "src/gi-register-type")
+
    #+5am
    (:module "test"
     :source-pathname ""
