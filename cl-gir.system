@@ -42,6 +42,8 @@
    (:file "src/gi-type-query")
    (:file "src/gi-register-type")
 
+   (:file "src/gi-extra")
+
    #+5am
    (:module "test"
     :source-pathname ""
