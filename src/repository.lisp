@@ -566,8 +566,14 @@ gboolean g_field_info_set_field (GIFieldInfo     *field_info,
 (cffi:defcfun (vfunc-info-get-flags "g_vfunc_info_get_flags") vfunc-info-flags
   (vfunc-info info-ffi))
 
+;; NOTE: this does not work when it is expected to work but always
+;; returns 65535
 (cffi:defcfun (vfunc-info-get-offset "g_vfunc_info_get_offset") :int
   (vfunc-info info-ffi))
+
+(cffi:defcfun (vfunc-info-get-address "g_vfunc_info_get_address") :pointer
+  (vfunc-info info-ffi)
+  (implementor-gtype :ulong))
 
 (def-info-func vfunc-info-get-signal
   (vfunc-info info-ffi))

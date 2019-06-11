@@ -131,6 +131,7 @@
    #:signal-info-get-flags
    #:vfunc-info-get-signal
    #:vfunc-info-get-offset
+   #:vfunc-info-get-address
    #:vfunc-info-get-invoker
    #:vfunc-info-get-flags
    #:constant-info-get-value
