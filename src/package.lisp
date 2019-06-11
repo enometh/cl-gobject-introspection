@@ -104,11 +104,13 @@
    #:object-info-get-class-struct
    #:object-info-get-type-init
    #:object-info-find-method
+   #:object-info-find-method-using-interfaces
    #:object-info-get-abstract
    #:object-info-get-constants
    #:object-info-get-parent
    #:object-info-get-signals
    #:object-info-find-vfunc
+   #:object-info-find-vfunc-using-interfaces
    #:object-info-get-methods
    #:object-info-get-vfuncs
    #:object-info-get-properties
