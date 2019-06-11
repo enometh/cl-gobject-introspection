@@ -448,6 +448,20 @@ const GArgument *value);
     (object-info info-ffi)
   (name :string))
 
+(cffi:defcfun g-object-info-find-method-using-interfaces info-ffi
+  (object-info info-ffi)
+  (name :string)
+  (interface-info :pointer))
+
+(defun object-info-find-method-using-interfaces (object-info name)
+  (cffi:with-foreign-objects ((interface-ptr :pointer))
+    (let ((method-info
+	   (g-object-info-find-method-using-interfaces object-info name
+						       interface-ptr)))
+      (values (info-ffi-finalize method-info)
+	      (cffi:convert-from-foreign (cffi:mem-ref interface-ptr :pointer)
+					 'info-ffi)))))
+
 (define-collection-getter object-info-get-signals
   g-object-info-get-n-signals g-object-info-get-signal)
 
@@ -461,6 +475,20 @@ const GArgument *value);
 (def-info-func object-info-find-vfunc
     (object-info info-ffi)
   (name :string))
+
+(cffi:defcfun g-object-info-find-vfunc-using-interfaces info-ffi
+  (object-info info-ffi)
+  (name :string)
+  (interface-info :pointer))
+
+(defun object-info-find-vfunc-using-interfaces (object-info name)
+  (cffi:with-foreign-objects ((interface-ptr :pointer))
+    (let ((vfunc-info
+	   (g-object-info-find-vfunc-using-interfaces object-info name
+						       interface-ptr)))
+      (values (info-ffi-finalize vfunc-info)
+	      (cffi:convert-from-foreign (cffi:mem-ref interface-ptr :pointer)
+					 'info-ffi)))))
 
 (define-collection-getter object-info-get-constants
   g-object-info-get-n-constants g-object-info-get-constant)
