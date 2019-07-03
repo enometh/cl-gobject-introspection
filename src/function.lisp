@@ -1012,7 +1012,7 @@
       call-desc
     (multiple-value-bind (args-data in-count out-count in-array-length-count)
 	(make-args-data info)
-      (declare (ignore in-count out-count in-array-length-count))
+      (declare (ignorable in-count out-count in-array-length-count))
       (format-debug t "shared-initialize(callable-desc): make-args-info(~S): ~S"
 		    (info-get-name info)
 		    (list :args-data args-data :in-count in-count
