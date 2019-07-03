@@ -9,21 +9,22 @@
 (in-package "CL-USER")
 
 (defvar *girlib-source-dir*
-  (merge-pathnames "girlib/"
-		   #+nil "~/h/gtk-extern/"
-		   (translate-logical-pathname "PROJECTS:")))
+  (merge-pathnames "girlib/" (translate-logical-pathname "PROJECTS:")))
 (defvar *girlib-binary-dir* (binary-directory *girlib-source-dir*))
 
+#+(and :lispworks :gtk)
+(pushnew :no-gtk *features*)
+
 (mk:defsystem :girlib
-   :source-pathname *girlib-source-dir*
-   :binary-pathname *girlib-binary-dir*
-   :source-extension "lisp"
-   :depends-on ("cl-gir" "bordeaux-threads")
-   :components (
-		"package"
-		"gtk-thread"
-		"convert-gvariant"
-		"gdbus-connection"
+  :source-pathname *girlib-source-dir*
+  :binary-pathname *girlib-binary-dir*
+  :source-extension "lisp"
+  :depends-on ("cl-gir" "bordeaux-threads")
+  :components (
+	       "package"
+	       "gtk-thread"
+	       "convert-gvariant"
+	       "gdbus-connection"
                ))
 
 #+nil

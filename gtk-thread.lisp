@@ -43,9 +43,15 @@
 
 (defun run-gtk-main ()
   "Enter the GTK main loop."
-  (user::cassert (zerop (gir:invoke (*gtk* "main_level")))) ; no nesting
-  (x11-init-threads)
-  (gir:invoke (*gtk* "init") nil)
+  (with-simple-restart (cont "CONT")
+    (assert (zerop   #-no-gtk		; no nesting
+		     (gir:invoke (*gtk* "main_level"))
+		     #+no-gtk
+		     (gir:invoke (*glib* "main_depth")))))
+  #-no-gtk
+  (progn
+    (x11-init-threads)
+    (gir:invoke (*gtk* "init") nil))
   ;; todo avoid call to maincontext
   (prog ((default-context (gir:invoke (*glib* "main_context_default"))))
    loop
