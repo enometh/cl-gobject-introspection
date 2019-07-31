@@ -19,6 +19,44 @@
 
 (defvar *gtk-main* (%make-gtk-main))
 
+(defun unix-errno ()
+  (cffi:mem-ref (cffi:foreign-funcall "__errno_location" :pointer) :int))
+
+(cffi:defcfun strerror :string (errno :int))
+
+(defvar *perror-signals-cerror* nil)
+
+(defun perror (format-string &rest format-args)
+  (let* ((errno (unix-errno))
+	 (str (format nil "~?: ~D: ~A~&" format-string format-args errno
+		      (strerror errno))))
+    (if *perror-signals-cerror*
+	(cerror "Continue" str)
+	(write-string str *error-output*))))
+
+(defvar +NR_gettid+ (or #+(and linux x86-64) 186 ;asm/unistd_64.h
+			#+(and linux x86) 224	 ;asm/unistd_32.h
+			))
+
+(defun gettid ()
+  (let ((tid (cffi:foreign-funcall "syscall" :long +NR_gettid+ :long)))
+    (if (< tid 0)
+	(progn (perror "gettid failed") nil)
+	tid)))
+
+(cffi:defcfun ("getpid" getpid) :int)
+
+(defvar $tv (gir::allocate-struct (gir:nget *glib* "TimeVal")))
+
+(defun format-log (stream format-string &rest format-args)
+  (gir:invoke (*glib* "get_current_time") $tv)
+  (format stream "~A [~6D][~6D]]: ~?"
+	  (gir:invoke ($tv "to_iso8601"))
+	  (getpid) (gettid) format-string format-args))
+
+#+nil
+(format-log *error-output* "~A" "foo")
+
 (cffi:defcallback process-gtk-main-task-queue :boolean ((user-data :pointer))
   (with-slots (queue lock free-list) *gtk-main*
     (let (index thunk)
