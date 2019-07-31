@@ -85,6 +85,37 @@ the top-level window for the application."
 					  main-window-id
 					  main-window-gir-name))))
 
+#+nil
+(defclass example-1 (gtk-application-mixin)
+  ()
+  (:default-initargs
+   :application-id "org.gtk.Example1"))
+
+#+nil
+(defmethod activate ((app example-1))
+  (with-slots ((win container-view) app) app
+    (setq win (gir:invoke (*gtk* "ApplicationWindow" "new") app))
+    (gir:invoke ( win "set_title" ) "Example1")
+    (gir:invoke ( win "set_default_size" ) 600 400)))
+
+#+nil
+(defvar $app-1 (make-instance 'example-1))
+
+#+nil
+(run $app-1)
+
+#+nil
+(quit $app-1)
+
+#+nil
+(gir:invoke ((slot-value $app-1 'app) "get_dbus_object_path"))
+
+
+;;; ----------------------------------------------------------------------
+;;;
+;;;
+;;;
+
 (defclass gtk-application-builder-mixin ()
   ((builder-ui-path :initarg :ui-path)
    (main-window-id :initform "window" :initarg :main-window-id)
