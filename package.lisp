@@ -26,6 +26,12 @@
    "CONVERT-ARG-TO-GVARIANT"
    "CONVERT-GVARIANT-TO-ARG"
 
+   ;; ffi-callback-manager
+   "FIND-CALLBACK" "WITH-REGISTERED-CALLBACK"
+
+   ;; gslist
+   "MAP-SLIST" "PREPEND-TO-SLIST" "SLIST-FREE" "SLIST-FREE-FULL"
+   "SLIST-LENGTH"
    ))
 
 (in-package "GIR-LIB")
