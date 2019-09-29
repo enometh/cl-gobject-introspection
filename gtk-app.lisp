@@ -14,14 +14,112 @@
 ;;; creating an instance. (the latter two must match the values in the
 ;;; XML file)
 
+(defclass titled-object ()
+  ((title :initarg :title :initform nil :accessor titled-object-title)))
+
+(defclass element ()
+  ((interface :initform nil :accessor element-interface)
+   (best-height :initarg :best-height :initform nil)
+   (best-width :initarg :best-width :initform nil)))
+
+(defclass simple-pane (element)
+  ((container-view :initform nil)))
+
+;; subclasses of simple-pane should set container-view (which is the
+;; GtkWidget GOBject) in the initialize-instance :before method. The
+;; following :after method defaults to initializing it to a GtkWindow
+;; if a subclass has not initialized it.
+
+(defmethod initialize-instance :after ((simple-pane-1 simple-pane) &key)
+  (with-slots (container-view best-height best-width) simple-pane-1
+    (unless container-view
+      (setq container-view
+	    (gir:invoke (*gtk* "Window" "new")
+			(gir:nget *gtk* "WindowType" :toplevel))))
+    (when (and best-width best-width)
+      (gir:invoke ( container-view "set_default_size" )
+		  best-width best-height))))
+
+(defclass interface (titled-object simple-pane) ())
+
+(defmethod initialize-instance :after ((intf-1 interface) &key)
+  (with-slots (container-view title) intf-1
+    (when (stringp title)
+      (gir:invoke (container-view "set_title") title))))
+
+(defmethod interface-display ((intf-1 interface))
+  (with-slots (container-view) intf-1
+    (gir:invoke (container-view "show_all"))))
+
+(defun display (intf-1)
+  (with-gtk-thread (interface-display intf-1)))
+
+(defmethod make-container ((simple-pane-1 simple-pane) &rest interface-args)
+  (let ((container (apply #'make-instance 'interface interface-args)))
+    (with-slots (container-view) container
+      (check-type container-view gir::object-instance)
+      (let ((obj-gtype (gir::gtype-of container-view)))
+	(assert (list (gir:invoke (*gobject* "type_is_a")
+				  obj-gtype
+				  (gir::gtype-of (gir:nget *gtk* "Window"))))))
+      (gir:invoke (container-view "add")
+		  (slot-value simple-pane-1 'container-view)))
+    container))
+
+(defun contain (element &rest interface-args &key title &allow-other-keys)
+  (declare (ignorable title))
+  (let ((container (element-interface element)))
+    (unless container
+      (setq container (apply #'make-container element interface-args))
+      (setf (element-interface element) container)
+      (with-slots (container-view) container
+	(gir:connect container-view "destroy"
+		     (lambda (window)
+		       (setf (element-interface element) nil)))))
+    (display container)
+    element))
+
+(defclass title-pane (titled-object simple-pane)
+  ((text :initarg :text :accessor title-pane-text :initform nil)))
+
+(defmethod initialize-instance :before ((title-pane-1 title-pane) &key text)
+  (with-slots (container-view) title-pane-1
+    (unless (slot-boundp title-pane-1 'container-view)
+      (setq container-view
+	    (gir:invoke (*gtk* "Label" "new") text)))))
+
+#+nil
+(defclass hello-world (interface)
+  ()
+  (:default-initargs
+   :best-height 400
+   :best-width 600
+   :title "Example-0"))
+
+#+nil
+(start-gtk-thread)
+
+#+nil					; in a multi-threaded lisp:
+(display (make-instance 'hello-world))
+
+#+nil
+(contain (make-instance 'title-pane :text "foo bar")
+	 :title "Title Pane Container"
+	 :best-height 200
+	 :best-width 300)
+
+
+;;; ----------------------------------------------------------------------
+;;;
+;;;
+;;;
 
 (defvar *gtk-applications* (make-hash-table :test #'equal)
   "Hashtable of application-id => lisp application object.")
 
-(defclass gtk-application-mixin ()
+(defclass gtk-application-mixin (interface)
   ((app)
    (application-id :initarg :application-id)
-   (container-view)
    (activate-id)
    (status)))
 
@@ -131,7 +229,7 @@ the top-level window for the application."
 (defvar $app-1 nil)
 
 #+nil
-(with-gtk-thread (setq $app-1  (make-instance 'example-1)))
+(with-gtk-thread (setq $app-1 (make-instance 'example-1)))
 
 #+nil
 (run $app-1)
@@ -149,9 +247,7 @@ the top-level window for the application."
 (gir:invoke ((slot-value $app-1 'container-view) "present"))
 (gir:invoke ((slot-value $app-1 'app) "quit"))
 (gir::g-object-unref (gir::this-of (slot-value $app-1 'app)))
-
 ||#
-
 
 
 ;;; ----------------------------------------------------------------------
@@ -258,4 +354,3 @@ the top-level window for the application."
 (remhash "org.gtk.example3" *gtk-applications*)
 (with-gtk-thread (setq $app (make-instance 'example-3)))
 ||#
-
