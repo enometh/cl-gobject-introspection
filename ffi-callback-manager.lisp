@@ -7,7 +7,7 @@
 
 (defvar *callback-manager* (%make-callback-manager))
 
-;; REGISTER-CALLBACK Allocate a tag which and return the CFFI:POINTER
+;; REGISTER-CALLBACK Allocate a tag and return the CFFI:POINTER
 ;; of its location. This tag identifies the FUNCTION.  The location
 ;; pointer can be used to lookup the function via FIND-CALLBACK.
 ;; FIND-CALLBACK is intended to be used within a CFFI:DEFCALLBACK with
