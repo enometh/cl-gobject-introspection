@@ -66,7 +66,9 @@
 	 (push index free-list)		; delete it
 	 (setf (elt queue index) nil))
       (with-simple-restart (skip-execution "Skip Executing this function")
-	(funcall thunk))))
+	(format-log t "START-EXECUTION THUNK~&")
+	(funcall thunk)
+	(format-log t "FINISHED-EXECUTION THUNK~&"))))
   (cffi:foreign-free user-data)
   nil)
 
@@ -97,6 +99,14 @@
 	   (t (unwind-protect (gir:invoke (default-context "iteration") t)
 		(go loop)))))
   (format t "Impossible! Leaving eternal damnation~&"))
+
+
+(defun run-one-main-context-iteration ( &optional block)
+  (prog ((default-context (gir:invoke (*glib* "main_context_default"))))
+     (cond (*gtk-main-kill-switch* (return))
+	   (t (unwind-protect (gir:invoke (default-context "iteration") block))))))
+#+nil
+(run-one-main-context-iteration t)
 
 (defun start-gtk-thread ()
   (when (find :bordeaux-threads *features*)
@@ -169,3 +179,9 @@
 
 #+nil
 (gtk-main-queue *gtk-main*)
+
+#+nil
+(setq *gtk-main-kill-switch* t)
+
+#+nil
+(setq *gtk-main-kill-switch* nil)
