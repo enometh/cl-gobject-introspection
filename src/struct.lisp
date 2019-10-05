@@ -148,3 +148,9 @@
 (defmethod get-constructor-desc ((struct-class struct-class) name)
   (when-let ((info (struct-class-get-constructor-info struct-class name)))
     (build-callable-desc info  :return-interface (info-of struct-class))))
+
+(defmacro with-struct ((var struct-class) &body body)
+  `(let ((,var (allocate-struct ,struct-class)))
+       (unwind-protect (progn ,@body)
+	 (free-struct ,var))))
+
