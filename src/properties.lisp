@@ -45,9 +45,8 @@
       (g-object-set-property ptr name gvalue)
       (cffi:foreign-free gvalue))
     (when rest (set-properties! ptr rest))))
-    
-    
-          
 
-  
-  
+(cffi:defcfun g_object_class_install_property :void
+  (obj :pointer) (property-id :int) (param :pointer))
+
+
