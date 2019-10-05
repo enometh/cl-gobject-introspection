@@ -159,6 +159,7 @@
    #:property
    #:allocate-struct
    #:free-struct
+   #:with-struct
    #:connect
    #:disconnect
 
