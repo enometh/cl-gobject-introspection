@@ -145,3 +145,6 @@
   (info1 info-ffi)
   (info2 info-ffi))
 
+(cffi:defcfun g-base-info-get-attribute :string
+  (info info-ffi)
+  (key :string))
