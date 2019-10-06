@@ -1,32 +1,8 @@
 (in-package "GIR")
-;;(export '(%ensure-class %define-methods))
-(eval-when (load eval compile)
-(shadowing-import (list  #+clozure 'ccl:validate-superclass
-	       #+(or allegro cmu) 'mop:validate-superclass
-	       #+(or lispworks  mkcl ecl) 'clos:validate-superclass)
-	:GIR))
+(export '(%ensure-class %define-methods))
 
 (eval-when (load eval compile)
-(defun eval-1 (expr)
-  (format t "EVAL-1: ===> ~S~&" expr)
-  (with-simple-restart (skip "Skip this form")
-    (eval expr)))
-
-(defun intern-1 (string package)
-  (let ((symbol-name (string-upcase (substitute #\- #\_ string))))
-    (or (find-symbol symbol-name package)
-	(progn (format t "INTERN-1: ~A -> ~A~&" string symbol-name)
-	       (intern symbol-name  package)))))
-
-(defun %build-validate-superclass-forms (class)
-  `(progn (defmethod gir::validate-superclass ((class ,class) (super standard-class))
-	    t)
-	  (defmethod gir::validate-superclass ((class standard-class) (super ,class))
-	    t))))
-
 (defclass instance-wrapper-class (standard-class) ())
-
-(eval-when (compile)
 (eval-1 (%build-validate-superclass-forms 'instance-wrapper-class)))
 
 #||
@@ -81,11 +57,10 @@
   ()
   (:metaclass instance-wrapper-class))
 
-(eval-when (compile)
 (dolist (class '(object-instance-wrapper
 		 struct-instance-wrapper
 		 interface-base-class))
-  (eval-1 (%build-validate-superclass-forms class))))
+  (eval-1 (%build-validate-superclass-forms class)))
 
 (defvar *class-to-object-class-hash* (make-hash-table))
 
