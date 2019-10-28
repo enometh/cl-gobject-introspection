@@ -1,4 +1,5 @@
 (in-package "GIR-LIB")
+(export '(map-slist slist->strings slist->objects))
 
 (cffi:defcallback slist-map-callback :void
     ((data :pointer) (user-data :pointer))
@@ -44,6 +45,12 @@
   (let (ret)
     (map-slist-1 slist-ptr (lambda (ptr)
 			     (push (cffi:foreign-string-to-lisp ptr) ret)))
+    (nreverse ret)))
+
+(defun slist->objects (slist-ptr object-class)
+  (let (ret)
+    (map-slist-1 slist-ptr (lambda (ptr)
+			      (push (gir::build-object-ptr object-class ptr) ret)))
     (nreverse ret)))
 
 (defun slist-length (slist-ptr)
