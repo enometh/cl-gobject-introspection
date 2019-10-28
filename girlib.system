@@ -27,6 +27,7 @@
 	       "gdbus-connection"
 	       "ffi-callback-manager"
 	       "gslist"
+	       "glist"
                ))
 
 #+nil
