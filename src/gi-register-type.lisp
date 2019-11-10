@@ -347,7 +347,14 @@ init function and the instance init function for the subclassable"
    (gir::info-of (nget gir-test::*gobject* "TypeModule"))
    "load"))
 (gir::info-get-name $oi_l)
+(gir::info-get-namespace $oi_l)
 (gir::vfunc-info-get-offset $fi_l)	;65535 fail!
+(gir::vfunc-info-get-address $fi_l (gtype-of $oi_l)) ; NULL ptr FAIL
+;; if that worked we could subtract the address from the following to
+;; get the offset
+(cffi:pointer-address
+ (gir::this-of (invoke (gir-lib::*gobject* "type_class_peek") (gir::gtype-of (nget gir-lib::*gobject* "TypeModule")))))
+(function-info-get-vfunc $fi_l)
 )
 
 ;; we instead need to go the c2ffi route and extract the offsets of
@@ -367,8 +374,6 @@ init function and the instance init function for the subclassable"
 (c2ffi-struct-alias "GTypeModuleClass")
 (c2ffi-query-struct "_GTypeModuleClass" "load" "bit-offset") ;((1088))
 (c2ffi-query-struct "_GTypeModuleClass" "unload" "bit-offset") ;((1152))
-)
-
 #+(and linux x86-64)
 (progn
 (defvar +type-module-class-offset-load+ (/ 1088 8))
@@ -377,6 +382,24 @@ init function and the instance init function for the subclassable"
 (progn
 (defvar +type-module-class-offset-load+ (/ 544 8))
 (defvar +type-module-class-offset-unload+ (/ 576 8)))
+)
+
+;; or the simple solution that we had all along: If we know the name
+;; of the struct-class and get a struct-class object.
+(defun find-class-struct-offset (struct-class cname)
+  (field-info-get-offset
+   (struct-class-find-field struct-class cname)))
+
+#+nil
+(find-class-struct-offset (nget gir-test::*gobject* "TypeModuleClass") "load")
+
+(defvar +type-module-class-offset-load+
+  (find-class-struct-offset (nget (require-namespace "GObject") "TypeModuleClass")
+			    "load"))
+
+(defvar +type-module-class-offset-unload+
+  (find-class-struct-offset (nget (require-namespace "GObject") "TypeModuleClass")
+			    "unload"))
 
 ;; and now that we have the offsets we can implement the class init
 ;; callback:
