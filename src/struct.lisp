@@ -154,3 +154,13 @@
        (unwind-protect (progn ,@body)
 	 (free-struct ,var))))
 
+(defmethod find-build-method ((struct-class struct-class) cname)
+  (let ((func-info (struct-info-find-method
+		    (info-of struct-class) cname)))
+    (and func-info (build-function func-info))))
+
+#||
+(defmethod find-build-method ((struct-class struct-class) cname)
+  (let ((info (struct-class-get-method-info struct-class cname)))
+    (and info (build-function info))))
+||#
