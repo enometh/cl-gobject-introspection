@@ -679,7 +679,10 @@
 		 (t (warn "unknown type info ~A =>int" (type-info-get-interface type-info))
 		    (values (parse-interface-type-info type-info) 'v-uint))))
 	  (:void (values (make-void-type) 'v-pointer))
-	  ((:array :utf8 :filename)
+	  (:array (values
+		   (parse-array-type-info type-info transfer)
+		   'v-pointer))
+	  ((:utf8 :filename)
 	   (error "array, utf8, filename must be pointer"))
 	  (t (find-parse-general-type-info tag))))))
 
