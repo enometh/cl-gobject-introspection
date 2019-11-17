@@ -1058,6 +1058,11 @@
 (defun build-type-desc (type-info)
   (desc-of-type (parse-type-info type-info :nothing)))
 
+(defmethod get-callable-desc ((namespace namespace) cname)
+  (let ((func-info (g-irepository-find-by-name nil (name-of namespace) cname)))
+    (cond ((typep func-info 'callable-info)
+	   (build-callable-desc func-info))
+	  (t (warn "cname ~a not a callable in namespace ~a" cname namespace)))))
 ;; debug
 #+nil
 (require 'closer-mop)

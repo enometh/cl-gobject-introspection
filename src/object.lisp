@@ -405,3 +405,16 @@
   (let ((info (info-of interface-desc)))
     (iter (for signal-info :in (interface-info-get-signals info))
 	  (collect (build-callable-desc signal-info)))))
+
+(defmethod get-vfunc-desc ((interface-desc interface-desc) name)
+  (let* ((cname (c-name name))
+	 (info (info-of interface-desc))
+	 (vfunc-info (interface-info-find-vfunc info cname)))
+    (if vfunc-info
+	(build-callable-desc vfunc-info)
+	(error "~a is not a virtual function name" cname))))
+
+(defmethod list-vfuncs-desc ((interface-desc interface-desc))
+  (let ((info (info-of interface-desc)))
+    (iter (for vfunc-info :in (interface-info-get-vfuncs info))
+	  (collect (build-callable-desc vfunc-info)))))
