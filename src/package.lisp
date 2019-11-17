@@ -169,6 +169,7 @@
    #:name-of
    #:type-desc-of
    #:callable-desc
+   #:get-callable-desc
    #:arguments-desc-of
    #:return-desc-of
    #:object-class
