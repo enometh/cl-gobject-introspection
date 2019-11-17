@@ -70,11 +70,16 @@
 (cffi:defcfun g-value-set-param :void (g-value :pointer) (val :pointer))
 (cffi:defcfun g-value-set-boxed :void (g-value :pointer) (val :pointer))
 (cffi:defcfun g-value-set-pointer :void (g-value :pointer) (val :pointer))
+
+;; REVISIT g-value-get-object autoconverts to gobject but if we want
+;; to get the pointer?
 (cffi:defcfun g-value-set-object :void (g-value :pointer) (val pobject))
 (cffi:defcfun g-value-set-variant :void (g-value :pointer) (val pvariant))
 
+;; REVISIT document exactly where these get used.
 (defun g-value-get-interface (g-value) (g-value-get-object g-value))
 (defun g-value-set-interface (g-value val) (g-value-set-object g-value val))
+
 
 (cffi:defcfun g-type-fundamental :ulong (id :ulong))
 
