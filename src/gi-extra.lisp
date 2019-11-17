@@ -86,3 +86,12 @@ or interface which implements the method."
 		 (return))
 		(t (setq parent-gtype (g-type-parent parent-gtype)))))
     (and info (values info parent-gtype))))
+
+(defun find-vfunc-offset-recursive (gtype cname)
+  (multiple-value-bind (function-info implementor-info)
+      (find-vfunc-recursive gtype cname)
+    (declare (ignorable function-info))
+    (when implementor-info
+      (let* ((struct-info (object-info-get-class-struct implementor-info))
+	     (struct-class (build-interface struct-info)))
+	(find-class-struct-offset struct-class cname)))))
