@@ -93,6 +93,9 @@
       :enum :flags :float :double :string
       :pointer :boxed :param :object :variant)))
 
+(defvar +g-type-none+ (ash 1 2))	; (%gtype :none) or (%gtype void)
+(defvar +g-type-value+ (cffi:foreign-funcall "g_value_get_type" :ulong))
+
 (defun %gtype (x)
   "Convert between keywords and (integer) gtypes. If the argument is a
  keyword recognized in +FUNDAMENTAL-G-TYPES+ the corresponding integer
@@ -100,12 +103,18 @@
  gtype correspoding in +FUNDAMENTAL-G-TYPES+ denoting this gtype is
  returned."
   (etypecase x
-    (number (loop for i from 0 for type-name in +fundamental-g-types+
-		  when (>= i 2)
-		  if (= x (* i 4)) return type-name))
-    (keyword (loop for i from 0 for type-name in +fundamental-g-types+
-		   when (>= i 2)
-		   if (eq x type-name) return (* i 4)))))
+    (number (or (loop for i from 0 for type-name in +fundamental-g-types+
+		      when (>= i 2)
+			if (= x (* i 4)) return type-name)
+		(and (= x +g-type-value+) :value)
+		(and (= x +g-type-none+) :none)
+		x))
+    (keyword (or (loop for i from 0 for type-name in +fundamental-g-types+
+		       when (>= i 2)
+			 if (eq x type-name) return (* i 4))
+		 (and (eql x :value) +g-type-value+)
+		 (and (eql x :none)  +g-type-none+)
+		 x))))
 
 (defun ffi-enum (value gtype)
   (declare (ignore gtype))
