@@ -665,7 +665,10 @@
 		 ((typep (type-info-get-interface type-info) 'object-info)
 		  (values (parse-interface-pointer-type-info type-info transfer)
 			  'v-pointer))
-		 (t (values (parse-interface-type-info type-info) 'v-uint))))
+		 (t (typecase (type-info-get-interface type-info)
+		      ((or enum-info struct-info) t)
+		      (t (warn "unknown type info ~A =>int" (type-info-get-interface type-info))))
+		    (values (parse-interface-type-info type-info) 'v-uint))))
 	  (:void (values (make-void-type) 'v-pointer))
 	  (:array (values
 		   (parse-array-type-info type-info transfer)
