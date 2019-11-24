@@ -48,3 +48,10 @@
 
 (defmethod build-interface ((info enum-info))
   (build-enum (build-interface-desc info)))
+
+;; should be enum-value-to-strings?
+(defun enum-value-to-string (namespace enum-name value)
+  (let (list)
+    (or (car (rassoc value (setq list (nlist-desc namespace enum-name))))
+	(loop for (name . target) in list
+	      if (not (zerop (logand value target))) collect name))))
