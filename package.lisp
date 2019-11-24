@@ -13,7 +13,9 @@
 (defpackage "GIR-LIB"
   (:use "CL")
   (:export
-   "*GIO*" "*GLIB*" "*GOBJECT*" "*GTK*" "*GDK*"
+   "*GIO*" "*GLIB*" "*GOBJECT*"
+   #-no-gtk "*GTK*" #-no-gtk "*GDK*"
+   "*GI-REPOSITORY*"
 
    ;; gtk-thread
    "GTK-ENQUEUE" "WITH-GTK-THREAD" "APPLY-IN-GTK-THREAD"
@@ -47,6 +49,8 @@
 
 #+nil
 (import '(*gio* *glib* *gobject* *gtk* *gdk*) "CL-USER")
+
+(defvar *gi-repository* (gir::ffi "GIRepository" "2.0"))
 
 (defpackage "GIR-TEST"
   (:use "CL" "GIR" "GIR-LIB")
