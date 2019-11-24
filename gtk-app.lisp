@@ -75,6 +75,7 @@
       (with-slots (container-view) container
 	(gir:connect container-view "destroy"
 		     (lambda (window)
+		       (declare (ignore window))
 		       (setf (element-interface element) nil)))))
     (display container)
     element))
