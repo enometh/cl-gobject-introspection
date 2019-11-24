@@ -368,7 +368,21 @@
 	(error "~a is not a virtual function name" cname))))
 
 (defclass interface-desc ()
-  ((info :initarg :info :reader info-of)))
+  ((info :initarg :info :reader info-of)
+   (function-cache :reader function-cache-of :initform (make-hash-table :test #'equal))
+   (method-cache :reader method-cache-of :initform (make-hash-table :test #'equal))))
+
+(defun interface-desc-build-class-function (interface-desc cname)
+  (let ((function-info (interface-info-find-method (info-of interface-desc) cname)))
+    (if function-info
+	(build-function function-info)
+	(error "Bad FFI constructor/class function name ~a" cname))))
+
+(defmethod nsget ((interface-desc interface-desc) name)
+  (let* ((cname (c-name name))
+	 (function-cache (function-cache-of interface-desc)))
+    (ensure-gethash cname function-cache
+		    (interface-desc-build-class-function interface-desc cname))))
 
 (defmethod get-method-desc ((object-class interface-desc) cname)
   (let ((func-info (interface-info-find-method
@@ -400,6 +414,13 @@
     (iter (for method-info :in (interface-info-get-methods info))
 	  (when (method? (function-info-get-flags method-info))
 	    (collect (build-callable-desc method-info))))))
+
+(defmethod list-class-functions-desc ((interface-desc interface-desc))
+  (let ((info (info-of interface-desc)))
+    (iter (for method-info :in (interface-info-get-methods info))
+	  (when (class-function? (function-info-get-flags method-info))
+	    (collect (build-callable-desc method-info))))))
+
 
 (defmethod list-signals-desc ((interface-desc interface-desc))
   (let ((info (info-of interface-desc)))
