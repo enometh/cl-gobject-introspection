@@ -1,5 +1,7 @@
 (in-package "GIR")
 
+(cffi:defcfun g-type-name :string (gtype :ulong))
+
 (defun gtype-of (obj)
   (etypecase obj
     (integer obj)
