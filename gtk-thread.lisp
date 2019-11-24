@@ -125,6 +125,33 @@
 			#'run-gtk-main
 			:name "GTK-Main-Thread")))))))
 
+;; for single-threaded lisps: (and clisp (not mt))
+(defvar *gtk-main-single-threaded-kill-switch* nil)
+
+(defun clisp-single-thread-check-runnable ()
+  (when *gtk-main-single-threaded-kill-switch*
+    (error "refusing to run when kill-switch is active")))
+
+(defun clisp-single-thread-register-destroy-handler (window)
+  (gir:connect window "destroy"
+	       #'(lambda (window)
+		   (warn "clisp-single-thread: set destroy-callback for ~S" window)
+		   (setq *gtk-main-single-threaded-kill-switch* t))))
+
+(defun clisp-single-thread-run-loop (window)
+  (let ((default-context (gir:invoke (*glib* "main_context_default"))))
+    (loop (cond (*gtk-main-kill-switch* (return))
+		(t (unwind-protect (gir:invoke (default-context "iteration") t)))))
+    (format t "clisp-single-thread: loop exited on window ~S ~&" window)
+    (setq *gtk-main-single-threaded-kill-switch* nil)))
+
+(defun run-clisp-window (win)
+  (clisp-single-thread-check-runnable)
+  (clisp-single-thread-register-destroy-handler win)
+  (gir:invoke (win "show_all"))
+  (clisp-single-thread-run-loop win))
+
+
 ;; execute thunk in the default main context
 (defun gtk-enqueue (thunk)
   (check-type thunk function)
