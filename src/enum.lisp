@@ -13,20 +13,21 @@
 (defmethod shared-initialize :after ((enum-desc enum-desc) slot-names
 				     &key enum-info)
   (declare (ignore slot-names))
-  (with-slots (name values-dict methods-dict)
-      enum-desc
-    (setf name
-	  (info-get-name enum-info)
-	  values-dict
-	  (iter (for i below (g-enum-info-get-n-values enum-info))
-		(let ((value-info (g-enum-info-get-value enum-info i)))
-		  (collect (cons (info-get-name value-info)
-				 (g-value-info-get-value value-info)))))
-	  methods-dict
-	  (iter (for i below (g-enum-info-get-n-methods enum-info))
-               (let ((func-info (g-enum-info-get-method enum-info i)))
-                 (collect (cons (info-get-name func-info)
-                                (build-function func-info))))))))
+  (when enum-info
+    (with-slots (name values-dict methods-dict)
+	enum-desc
+      (setf name
+	    (info-get-name enum-info)
+	    values-dict
+	    (iter (for i below (g-enum-info-get-n-values enum-info))
+		  (let ((value-info (g-enum-info-get-value enum-info i)))
+		    (collect (cons (info-get-name value-info)
+				   (g-value-info-get-value value-info)))))
+	    methods-dict
+	    (iter (for i below (g-enum-info-get-n-methods enum-info))
+		  (let ((func-info (g-enum-info-get-method enum-info i)))
+                    (collect (cons (info-get-name func-info)
+                                   (build-function func-info)))))))))
 
 (defmethod build-interface-desc ((enum-info enum-info))
   (make-instance 'enum-desc :enum-info enum-info))
