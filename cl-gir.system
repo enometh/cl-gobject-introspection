@@ -44,14 +44,19 @@
    (:file "src/gi-extra")
    (:file "src/gi-extra-pkg")		;exports
    (:file "src/clos-obj-pkg")
-   (:file "src/clos-obj")
-
-   #+5am
-   (:module "test"
-    :source-pathname ""
-    :components ((:file "test/package")
-		 (:file "test/test1")
-		 (:file "test/gir-test")))))
+   (:file "src/clos-obj")))
 
 #+nil
 (mk:oos :cl-gir :load :compile-during-load t)
+
+(mk:defsystem :cl-gir-test
+  :source-pathname *cl-gir-source-dir*
+  :binary-pathname *cl-gir-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:cl-gobject-introspection :iterate :fiveam)
+  :components ((:file "test/package")
+	       (:file "test/test1")
+	       (:file "test/gir-test")))
+
+#+nil
+(mk:oos :cl-gir-test :load :compile-during-load t)
