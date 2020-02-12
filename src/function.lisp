@@ -209,13 +209,20 @@
       c-array-type
     (let ((length (c-array-length c-array-type))
 	  (param-size (mem-size param-type)))
-      (loop
-	:for pos = array :then (cffi:inc-pointer pos param-size)
-	:for i :below (if zero-terminated? (1- length) length)
-	:for element :in value
-	:do (mem-set pos element param-type)
-	:finally (if zero-terminated?
-		     (zero-memory pos param-size))))))
+      (macrolet
+	  ((doitfor (sequence-type)
+	     `(loop
+		:for pos = array :then (cffi:inc-pointer pos param-size)
+		:for i :below (if zero-terminated? (1- length) length)
+		:for element ,(ecase sequence-type
+				(:array :across)
+				(:list :in)) value
+		:do (mem-set pos element param-type)
+		:finally (if zero-terminated?
+			     (zero-memory pos param-size)))))
+	(etypecase value
+	   (array (doitfor :array))
+	   (list (doitfor :list)))))))
 
 (defun map-c-array (func array c-array-type)
   (with-slots (param-type fixed-size zero-terminated?)
