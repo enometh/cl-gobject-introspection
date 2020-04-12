@@ -14,7 +14,7 @@
   (:use "CL")
   (:export
    "*GIO*" "*GLIB*" "*GOBJECT*"
-   #-no-gtk "*GTK*" #-no-gtk "*GDK*"
+   #-no-gtk "*GTK*" #-no-gtk "*GDK*" #-no-gtk "*CAIRO*"
    "*GI-REPOSITORY*"
 
    ;; gtk-thread
@@ -46,6 +46,8 @@
 (defvar *gtk* (gir:ffi "Gtk" #+lispworks6 "2.0")))
 #-no-gtk
 (defvar *gdk* (gir:ffi "Gdk" #+lispworks6 "2.0"))
+#-no-gtk
+(defvar *cairo* (gir:require-namespace "cairo"))
 
 #+nil
 (import '(*gio* *glib* *gobject* *gtk* *gdk*) "CL-USER")
