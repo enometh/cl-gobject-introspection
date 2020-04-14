@@ -402,7 +402,7 @@
     (ensure-gethash (list namespace name) struct-type-cache
 		    (make-instance 'struct-type :namespace namespace :name name))))
 
-(defclass union-type ()
+(defclass union-type (interface-type)
   ((size :initarg :size)))
 
 (defmethod free-from-foreign-aggregated-p ((union-type union-type))
