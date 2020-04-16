@@ -60,6 +60,8 @@
 #+nil
 (format-log *error-output* "~A" "foo")
 
+(defvar *serial* 0)
+
 (cffi:defcallback process-gtk-main-task-queue :boolean ((user-data :pointer))
   (with-slots (queue lock free-list) *gtk-main*
     (let (index thunk)
@@ -69,9 +71,10 @@
 	 (push index free-list)		; delete it
 	 (setf (elt queue index) nil))
       (with-simple-restart (skip-execution "Skip Executing this function")
-	(format-log t "START-EXECUTION THUNK~&")
+	(format-log t "START-EXECUTION THUNK ~A.~&" *serial*)
 	(funcall thunk)
-	(format-log t "FINISHED-EXECUTION THUNK~&"))))
+	(format-log t "FINISHED-EXECUTION THUNK ~A.~&" *serial*)
+	(incf *serial*))))
   (cffi:foreign-free user-data)
   nil)
 
