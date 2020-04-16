@@ -1,5 +1,5 @@
 (in-package "GIR-LIB")
-(export '(map-list list->string list->objects))
+(export '(map-list list->strings list->objects))
 
 (define-foreach-callback-mapper "g_list_foreach" "LIST")
 
