@@ -9,8 +9,14 @@
 			   (push (cffi:foreign-string-to-lisp ptr) ret)))
     (nreverse ret)))
 
-(defun list->objects (list-ptr object-class)
+(defun list->objects (list-ptr &optional object-class)
   (let (ret)
-    (map-list-1 list-ptr (lambda (ptr)
-			   (push (gir::build-object-ptr object-class ptr) ret)))
+    (map-list-1 list-ptr
+		(lambda (ptr)
+		  (push (if object-class
+			    (gir::build-object-ptr object-class ptr)
+			     (gir::gobject
+			      (cffi:mem-ref (cffi:mem-ref ptr :pointer) :ulong)
+			      ptr))
+			ret)))
     (nreverse ret)))
