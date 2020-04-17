@@ -23,5 +23,6 @@
 	  enum-value-to-string
 	  ;; signal.lisp
 	  *user-data*
+	  fields
 	  )
 	"GIR")

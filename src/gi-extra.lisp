@@ -97,3 +97,17 @@ or interface which implements the method."
       (let* ((struct-info (object-info-get-class-struct implementor-info))
 	     (struct-class (build-interface struct-info)))
 	(find-class-struct-offset struct-class cname)))))
+
+(defun %gobject (ptr)
+  (let ((gtype (cffi:mem-ref (cffi:mem-ref ptr :pointer) :ulong)))
+    (gobject gtype ptr)))
+
+(defun fields (obj)
+  (let ((fields (list-fields-desc
+		 (etypecase obj
+		   (object-instance (gir-class-of obj))
+		   (struct-instance  (struct-class-of obj))))))
+    (when fields
+      (loop for field in fields
+	    collect (list field
+			  (field obj (slot-value field 'gir::name)))))))
