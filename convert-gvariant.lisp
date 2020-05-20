@@ -19,9 +19,13 @@
   (let ((i start))
     (cond ((find (elt str i) "ybnqiuxtdsogv")
 	   (values (string (elt str i)) (1+ i)))
-	  ((eql (elt str i) #\()
-	   (let ((p (position #\) str :start (1+ i))))
-	     (values (subseq str i (1+ p)) (1+ p))))
+	  ((eql (elt str i) #\()	; handle nesting
+	   (cond ((eql (elt str (1+ i)) #\()
+		  (multiple-value-bind (typ2 idx2)
+		      (parse-single-complete-type str :start (1+ i))
+		    (values (list typ2) (1+ idx2))))
+		 (t (let ((p (position #\) str :start (1+ i))))
+		      (values (subseq str i (1+ p)) (1+ p))))))
 	  ((eql (elt str i) #\a)
 	   (if (eql (elt str (1+ i)) #\{) ;; a{..} is a full complete type
 	       (let (typ1 index1 typ2 index2)
