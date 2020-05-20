@@ -86,8 +86,10 @@ lists."
 				(t (error "Unknown signature ~S" sig))))
 		  arg)))
 
-(defun convert-gvariant-to-arg (gvariant sig)
-  (assert (equal sig (gir:invoke (gvariant "get_type_string"))))
+(defun convert-gvariant-to-arg (gvariant &optional sig)
+  (if sig
+      (assert (equal sig (gir:invoke (gvariant "get_type_string"))))
+      (setq sig (gir:invoke (gvariant "get_type_string"))))
   (if (> (length sig) 1)
       (let* ((parsed (parse-signature sig))
 	     (aggregate-sig (car parsed)))
