@@ -24,5 +24,10 @@
 	  ;; signal.lisp
 	  *user-data*
 	  fields
+
+	  ;; convert-gvariant
+	  CONVERT-TO-GVARIANT
+	  CONVERT-FROM-GVARIANT
+	  DICT-ENTRY DICT-ENTRY-K DICT-ENTRY-V MAKE-DICT-ENTRY
 	  )
 	"GIR")

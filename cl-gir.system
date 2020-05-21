@@ -43,6 +43,7 @@
    (:file "src/gi-register-type")
 
    (:file "src/gi-extra")
+   (:file "src/convert-gvariant")
    (:file "src/gi-extra-pkg")		;exports
    (:file "src/clos-obj-pkg")
    (:file "src/clos-obj")))
