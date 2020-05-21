@@ -4,106 +4,184 @@
 ;;;   Touched: [Sun Nov 26 14:10:37 2017 +0530] <enometh@meer.net>
 ;;;   Bugs-To: enometh@meer.net
 ;;;   Status: Experimental.  Do not redistribute
-;;;   Copyright (C) 2017 Madhu.  All Rights Reserved.
+;;;   Copyright (C) 2017-2020 Madhu.  All Rights Reserved.
 ;;;
 ;;; from 1.l
 ;;;
 ;;; recursive un/marshalling
 ;;;
-;;; gvariant arrays of dict entries are converted to/from lisp
-;;; hash-tables
+;;;; ;madhu 200521 - rewrite using the glib algorithm. dont use
+;;;; hashtables use a distinct types to represent dictionary entries,
+;;;; arrays and tuples when parsing gvariant type signatures.
 
 (in-package "GIR-LIB")
 
-(defun parse-single-complete-type (str &key (start 0))
-  (let ((i start))
-    (cond ((find (elt str i) "ybnqiuxtdsogv")
-	   (values (string (elt str i)) (1+ i)))
-	  ((eql (elt str i) #\()	; handle nesting
-	   (cond ((eql (elt str (1+ i)) #\()
-		  (multiple-value-bind (typ2 idx2)
-		      (parse-single-complete-type str :start (1+ i))
-		    (values (list typ2) (1+ idx2))))
-		 (t (let ((p (position #\) str :start (1+ i))))
-		      (values (subseq str i (1+ p)) (1+ p))))))
-	  ((eql (elt str i) #\a)
-	   (if (eql (elt str (1+ i)) #\{) ;; a{..} is a full complete type
-	       (let (typ1 index1 typ2 index2)
-		 (declare (ignorable typ1 typ2))
-		 (multiple-value-setq (typ1 index1)
-		   (parse-single-complete-type str :start (+ 2 i)))
-		 (multiple-value-setq (typ2 index2)
-		   (parse-single-complete-type str :start index1))
-		 (assert (eql (elt str index2) #\}))
-		 (values (subseq str i (1+ index2)) (1+ index2)))
-	       (multiple-value-bind (typ index)
-		   (parse-single-complete-type str :start (1+ i))
-		 (declare (ignore typ))
-		 (values (subseq str i index) index))))
-	  (t (error "parsing single complete type: ~S ~S" str (subseq str start))))))
+(defstruct dict-entry k v)
 
-(defun parse-signature (str &key (start 0) (end (length str)))
-  "Return a list of single complete types. Tuples are returned in sub
-lists."
-  (let ((ret nil) (i start))
-    (loop (cond ((= i end) (return (nreverse ret)))
-		(t (multiple-value-bind (sig idx)
-		       (parse-single-complete-type str :start i)
-		     (push (cond ((eql (elt sig 0) #\()
-				  (parse-signature sig :start 1
-						   :end (1- (length sig))))
-				 (t sig))
-			   ret)
-		     (assert (> idx i))
-		     (assert (<= idx end))
-		     (setq i idx)))))))
+;; Return (values RET end-position child-depth) or NIL
+(defun variant-type-string-scan-internal (string &optional (start 0) (end (length string)) (depth-limit 65))
+  (prog ((max-depth 0) end1 child-depth ret1 ret c d)
+     (assert string)
+     (if (= start end) (return nil))
+     (ecase (setq c (elt string (prog1 start (incf start))))
+       (#\(
+	(loop while (or (= start end) (not (eql (elt string start) #\))))
+	      do (if (zerop depth-limit) (return nil))
+		 (multiple-value-setq (ret1 end1 child-depth)
+		   (variant-type-string-scan-internal string start end (1- depth-limit)))
+		 (if (not ret1) (return nil))
+		 (assert (listp ret))
+		 (push ret1 ret)
+		 (setq start end1)
+		 (setq max-depth (max max-depth (1+ child-depth))))
+	(setq ret (nreverse ret))
+	(incf start))
+       (#\{
+	(if (= depth-limit 0) (return nil))
+	(if (= start end) (return nil))
+	(if (not (find (setq d (elt string (prog1 start (incf start)))) "bynqihuxtdsog?"))
+	    (return nil))
+	(multiple-value-setq (ret1 end1 child-depth)
+	  (variant-type-string-scan-internal string start end (1- depth-limit)))
+	(unless ret1 (return nil))
+	(setq start end1)
+	(if (= start end) (return nil))
+	(if (not (eql (elt string (prog1 start (incf start))) #\})) (return nil))
+	(assert (null ret))
+	(setq ret (make-dict-entry :k (string d) :v ret1))
+	(setq max-depth (max max-depth (1+ child-depth))))
+       ((#\m #\a)
+	(if (= depth-limit 0) (return nil))
+	(multiple-value-setq (ret1 end1 child-depth)
+	  (variant-type-string-scan-internal string start end (1- depth-limit)))
+	(if (not ret1) (return nil))
+	(assert (null ret))		;FIXME
+	(setq ret (vector ret1))
+	(setq start end1)
+	(setq max-depth (max max-depth (1+ child-depth))))
+       ((#\b #\y #\n #\q #\i #\u #\x #\t #\d #\s #\o #\g #\v #\r #\* #\? #\h)
+	(assert (null ret))
+	(setq ret (string c))
+	(setq max-depth (max max-depth 1)))
+       (t (return nil)))
+     (return (values ret start max-depth))))
 
-(defun parse-dict-entry (signature &key (start 0) (end (length signature)))
-  ;; parse the dictionary entry fragment {ss} => ("s" "s")
-  (assert (eql (elt signature start) #\{))
-  (assert (eql (elt signature (1- end)) #\}))
-  (parse-signature signature :start (1+ start) :end (1- end)))
+#||
+(variant-type-string-scan-internal "aa{ss}") ; #(#(#S(DICT-ENTRY :K "s" :V "s"))), 6, 4
+(variant-type-string-scan-internal "as") ; #("s"), 2, 2
+(variant-type-string-scan-internal "{s(u)}" 0 6) ; #S(DICT-ENTRY :K "s" :V ("u")), 6, 3
+(variant-type-string-scan-internal "(su)" 0 4) ; ("s" "u"), 4, 2
+(variant-type-string-scan-internal "a{ss}") ; #(#S(DICT-ENTRY :K "s" :V "s")), 5, 3
+(variant-type-string-scan-internal "(asas)") ; (#("s") #("s")), 6, 3
+(variant-type-string-scan-internal "(a{ss})") ; (#(#S(DICT-ENTRY :K "s" :V "s"))), 7, 4
+||#
 
-(defun convert-arg-to-gvariant (arg sig)
-  (if (> (length sig) 1) ; (and (typep arg 'sequence) (not (typep arg 'string)))
-      (let* ((parsed (parse-signature sig))
-	     (aggregate-sig (car parsed)))
-	(assert (null (cddr parsed)))
-	(if (consp aggregate-sig)
-	    (progn (assert (eql (elt sig 0) #\())
-		   (args->gvariant-tuple arg aggregate-sig))
-	    (progn (assert (eql (elt aggregate-sig 0) #\a))
-		   (args->gvariant-array arg (subseq aggregate-sig 1)))))
-      (gir:invoke (*glib* "Variant"
-			  (cond ((string-equal sig "s") "new_string")
-				((string-equal sig "b") "new_boolean")
-				((string-equal sig "y") "new_byte")
-				((string-equal sig "s") "new_string")
-				((string-equal sig "n") "new_int16")
-				((string-equal sig "q") "new_uint16")
-				((string-equal sig "i") "new_int32")
-				((string-equal sig "u") "new_uint32")
-				((string-equal sig "x") "new_int64")
-				((string-equal sig "t") "new_uint64")
-				((string-equal sig "d") "new_double")
-				((string-equal sig "v") "new_variant")
-				(t (error "Unknown signature ~S" sig))))
-		  arg)))
+(defun unparse-sig (sig)
+  (etypecase sig
+    (string sig)
+    (array
+     (assert (= 1 (length sig)))
+     (concatenate 'string "a" (unparse-sig (elt sig 0))))
+    (dict-entry (concatenate 'string "{" (unparse-sig (dict-entry-k sig))
+			    (unparse-sig (dict-entry-v sig)) "}"))
+    (cons
+     (with-output-to-string (stream)
+       (write-char #\( stream)
+       (loop for x in sig
+	     do (write-string (unparse-sig x) stream))))))
 
-(defun convert-gvariant-to-arg (gvariant &optional sig)
-  (if sig
-      (assert (equal sig (gir:invoke (gvariant "get_type_string"))))
-      (setq sig (gir:invoke (gvariant "get_type_string"))))
-  (if (> (length sig) 1)
-      (let* ((parsed (parse-signature sig))
-	     (aggregate-sig (car parsed)))
-	(assert (null (cddr parsed)))
-	(if (consp aggregate-sig)	; tuple
-	    (progn (assert (or (eql (elt sig 0) #\()  (eql (elt sig 0) #\{)))
-		   (gvariant-tuple->args gvariant aggregate-sig))
-	    (progn (assert (eql (elt aggregate-sig 0) #\a))
-		   (gvariant-array->args gvariant (subseq aggregate-sig 1)))))
-      (gir:invoke (gvariant (cond ((string-equal sig "s") "get_string")
+
+#||
+(unparse-sig #("s")) ; "as"
+(unparse-sig #(#S(dict-entry :k "s" :v "s"))) ; "a{ss}"
+||#
+
+(defun struct-instance-is-gvariant (arg)
+  (and (typep arg 'gir::struct-instance)
+       (equal (gir::struct-class-of arg) (gir:nget *glib* "Variant"))))
+
+;; INCOMPLETE! can't handle most numbers
+(defun unparse-to-sig (arg)
+  (etypecase arg
+    (string "s")
+    (boolean "b")
+    (array (concatenate 'string "a" (unparse-to-sig (elt arg 0))))
+    (dict-entry (concatenate 'string "{" (unparse-to-sig (dict-entry-k arg))
+			     (unparse-to-sig (dict-entry-v arg)) "}"))
+    (cons (with-output-to-string (stream)
+	    (write-char #\( stream)
+	    (map nil (lambda (x) (write-string (unparse-to-sig x) stream)) arg)
+	    (write-char #\) stream)))
+    ((integer 0 #.(expt 2 32)) "u")
+    ((integer #.(- (expt 2 31)) #.(expt 2 31)) "i")
+    ((satisfies struct-instance-is-gvariant) "v")
+    (float "d")))
+
+#||
+(unparse-to-sig #(1 2 3)) ; "au"
+(unparse-to-sig #(1 2 -3)) ; "au"
+(unparse-to-sig #(#s(dict-entry :k 2 :v "foo"))) ; "a{us}"
+||#
+
+(defun convert-to-gvariant (arg sig &optional (depth 0))
+  (if (zerop depth) (assert (stringp sig)))
+  (let ((parsed-sig (if (zerop depth) (variant-type-string-scan-internal sig) sig)))
+    (etypecase parsed-sig
+      (string
+       (assert (= (length parsed-sig) 1))
+       (gir:invoke (*glib* "Variant"
+			   (cond ((string-equal sig "s") "new_string")
+				 ((string-equal sig "b") "new_boolean")
+				 ((string-equal sig "y") "new_byte")
+				 ((string-equal sig "s") "new_string")
+				 ((string-equal sig "n") "new_int16")
+				 ((string-equal sig "q") "new_uint16")
+				 ((string-equal sig "i") "new_int32")
+				 ((string-equal sig "u") "new_uint32")
+				 ((string-equal sig "x") "new_int64")
+				 ((string-equal sig "t") "new_uint64")
+				 ((string-equal sig "d") "new_double")
+				 ((string-equal sig "v") "new_variant")
+				 ((string-equal sig "o") "new_object_path")
+				 (t (error "Unknown signature ~S" sig))))
+		   arg))
+      (array
+       (assert (=  (length parsed-sig) 1))
+       (assert (typep arg 'sequence))
+       (gir:invoke (*glib* "Variant" "new_array")
+		     (gir:invoke (*glib* "VariantType" "new")
+				 (unparse-sig (elt parsed-sig 0)))
+		     (map 'list (lambda (x)
+				  (convert-to-gvariant x  (elt parsed-sig 0) (1+ depth)))
+			  arg)))
+      (dict-entry
+       ;; handle arg as (k v) or (k . v) or #S(dict-entry :k k :v v)
+       (multiple-value-bind (k v)
+	   (etypecase arg
+	     (dict-entry (values (dict-entry-k arg) (dict-entry-v arg)))
+	     (sequence
+	      (ecase (length arg)
+		(2 (values (elt arg 0) (elt arg 1)))
+		(1 (values (car arg) (cdr arg))))))
+	 (gir:invoke (*glib* "Variant" "new_dict_entry")
+		     (convert-to-gvariant k (dict-entry-k parsed-sig) (1+ depth))
+		     (convert-to-gvariant v (dict-entry-v parsed-sig) (1+ depth)))))
+      (cons				; tuple
+       (gir:invoke (*glib* "Variant" "new_tuple")
+		   (loop for arg in arg
+			 for sig in parsed-sig
+			 collect (convert-to-gvariant arg sig (1+ depth))))))))
+
+(defun convert-from-gvariant (gvariant &optional sig (depth 0))
+  (when (zerop depth)
+    (if sig
+	(assert (equal sig (gir:invoke (gvariant "get_type_string"))))
+	(setq sig (gir:invoke (gvariant "get_type_string")))))
+  (let ((parsed-sig (if (zerop depth) (variant-type-string-scan-internal sig) sig)))
+    (etypecase parsed-sig
+      (string
+       (assert (= (length parsed-sig) 1))
+       (gir:invoke (gvariant (cond ((string-equal sig "s") "get_string")
 				  ((string-equal sig "b") "get_boolean")
 				  ((string-equal sig "y") "get_byte")
 				  ((string-equal sig "s") "get_string")
@@ -115,91 +193,74 @@ lists."
 				  ((string-equal sig "t") "get_uint64")
 				  ((string-equal sig "d") "get_double")
 				  ((string-equal sig "v") "get_variant")
-				  (t (error "Unknown signature ~S." sig)))))))
-
-(defun args->gvariant-tuple (args arg-signatures)
-  (gir:invoke (*glib* "Variant" "new_tuple")
-	      (loop for arg in args
-		    for sig in arg-signatures
-		    collect (convert-arg-to-gvariant arg sig))))
-
-(defun gvariant-tuple->args (gvariant-tuple arg-signatures)
-  (let ((nargs (gir:invoke (gvariant-tuple "n_children"))))
-    (loop for i below nargs
-	  for sig in arg-signatures
-	  for gvariant = (gir:invoke (gvariant-tuple "get_child_value") i)
-	  collect (convert-gvariant-to-arg gvariant sig))))
-
-(defun args->gvariant-array (seq array-element-type-sig &aux ret)
-  (if (eql (elt array-element-type-sig 0) #\{) ; special case
-      (let ((tuple-sig (parse-dict-entry array-element-type-sig)))
-	(maphash (lambda (k v)
-		   (push
-		    (gir:invoke (*glib* "Variant" "new_dict_entry")
-				(convert-arg-to-gvariant k (first tuple-sig))
-				(convert-arg-to-gvariant v (second tuple-sig)))
-		    ret))
-		 seq)
-	(setq ret (nreverse ret)))
-      (setq ret
-	    (map 'list (lambda (x)
-			 (convert-arg-to-gvariant x array-element-type-sig))
-		 seq)))
-  (gir:invoke (*glib* "Variant" "new_array")
-	      (gir:invoke (*glib* "VariantType" "new") array-element-type-sig)
-	      ret))
-
-(defun gvariant-array->args (gvariant-array array-element-type-sig)
-  (let ((nargs (gir:invoke (gvariant-array "n_children"))))
-    (if (eql (elt array-element-type-sig 0) #\{) ;special case
-	(let ((ret (make-hash-table :test #'equal))
-	      (tuple-sig (parse-dict-entry array-element-type-sig)))
+				  ((string-equal sig "o") "get_string")
+				  (t (error "Unknown signature ~S." sig))))))
+      (array
+       (assert (=  (length parsed-sig) 1))
+       (let ((array-element-type-sig (elt parsed-sig 0))
+	     (nargs (gir:invoke (gvariant "n_children"))))
+	 (funcall
+	  #'make-array nargs :initial-contents
 	  (loop for i below nargs
-		for gvariant-dict-entry =
-		(gir:invoke (gvariant-array "get_child_value") i)
-		for kv = (gir:invoke (gvariant-dict-entry "get_child_value") 0)
-		for vv = (gir:invoke (gvariant-dict-entry "get_child_value") 1)
-		for k = (convert-gvariant-to-arg kv (first tuple-sig))
-		for v = (convert-gvariant-to-arg vv (second tuple-sig))
-		do (setf (gethash k ret) v))
-	  ret)
-	(loop for i below nargs
-	      for gvariant = (gir:invoke (gvariant-array "get_child_value") i)
-	      collect
-	      (convert-gvariant-to-arg gvariant array-element-type-sig)))))
+		for gvariant-elem = (gir:invoke (gvariant "get_child_value") i)
+		collect
+		(convert-from-gvariant gvariant-elem array-element-type-sig (1+ depth))))))
+      (dict-entry
+       (let* ((kv (gir:invoke (gvariant "get_child_value") 0))
+	      (vv (gir:invoke (gvariant "get_child_value") 1))
+	      (k (convert-from-gvariant kv (dict-entry-k parsed-sig) (1+ depth)))
+	      (v (convert-from-gvariant vv (dict-entry-v parsed-sig) (1+ depth))))
+	 (make-dict-entry :k k :v v)))
+      (cons
+       (let ((nargs (gir:invoke (gvariant "n_children"))))
+	 (loop for i below nargs
+	       for sig in parsed-sig
+	       for gvariant-elem = (gir:invoke (gvariant "get_child_value") i)
+	       collect (convert-from-gvariant gvariant-elem sig (1+ depth))))))))
 
+(defun parse-signature (str &key (start 0) (end (length str)))
+  "Return a list of single complete types. Tuples are returned in sub
+lists."
+  (let (ret1 ret end1 depth (i start))
+    (declare (ignorable depth))
+    (loop (multiple-value-setq (ret1 end1 depth)
+	    (variant-type-string-scan-internal str i end))
+	  (assert ret1)
+	  (push ret1 ret)
+	  (setq i (1+ end1))
+	  (if (>= i end) (return (nreverse ret))))))
 
 #||
 (parse-signature "a{o(oayay)}")
 (parse-signature "(as)a{o(oayay)}")
-(parse-dict-entry "{o(oayay)}")
+(parse-signature "{o(oayay)}")
 ||#
 
-
-
-(defun print-arg (arg &optional (depth 0))
+(defun print-arg (arg &optional (stream *standard-output*) (depth 0))
   (flet  ((format (stream control &rest format-args)
-	    (loop for i below depth do (apply 'cl:format t (list "  ")))
+	    (loop for i below depth do (apply 'cl:format stream (list "  ")))
 	    (apply 'cl:format stream control format-args)))
     (etypecase arg
-      (list (format t "(")
-	    (mapcar (lambda (x) (print-arg x (1+ depth)) (terpri)) arg)
-	    (format t ")~&"))
-      (hash-table
-       (format t "array [~&")
-       (maphash (lambda (k v)
-		  (format t "dict entry(~&")
-		  (print-arg k (1+ depth)) ; prints newline
-		  (print-arg v (1+ depth))
-		  (format t ")~&"))
-		arg)
-       (format t "]~&"))
-      (gir::struct-instance
-       (if (equal (gir::struct-class-of arg) (gir:nget *glib* "Variant"))
-	   (let ((fmt (gir:invoke (arg "get_type_string"))))
-	     (format t "variant ~S " fmt)
-	     (print-arg (convert-gvariant-to-arg
-					arg
-					fmt)))
-	   (format t "<<~S>>~&" arg)))
-      (t (format t "~S~&" arg)))))
+      ((and array (not string))
+       (format stream "array [~&")
+       (map nil (lambda (x)
+		  (print-arg x stream (1+ depth))
+		  #+nil(terpri stream))
+	    arg)
+       (format stream "]~&"))
+      (dict-entry
+       (format stream "dict entry(~&")
+       (print-arg (dict-entry-k arg) stream (1+ depth)) ; prints newline
+       (print-arg (dict-entry-v arg) stream (1+ depth))
+       (format stream ")~&"))
+      (cons (format t "(")
+       (map nil (lambda (x)
+		  (print-arg x stream (1+ depth))
+		  #+nil(terpri stream))
+	    arg)
+       (format stream ")~&"))
+      (t (format stream "~S~&" arg)))))
+
+#+nil
+(with-output-to-string (*standard-output*)
+  (print-arg #(1 2 #S(dict-entry :k "key" :v "val") 3)))
