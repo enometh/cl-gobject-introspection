@@ -24,10 +24,6 @@
    ;; gdbus-connection
    "DBUS-INIT-BUS" "*CONNECTION*"
 
-   ;; convert-gvariant
-   "CONVERT-TO-GVARIANT"
-   "CONVERT-FROM-GVARIANT"
-
    ;; ffi-callback-manager
    "FIND-CALLBACK" "WITH-REGISTERED-CALLBACK"
 

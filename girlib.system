@@ -23,7 +23,6 @@
   :components (
 	       "package"
 	       "gtk-thread"
-	       "convert-gvariant"
 	       "gdbus-connection"
 	       "ffi-callback-manager"
 	       "gslist"
