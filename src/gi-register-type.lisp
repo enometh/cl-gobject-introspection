@@ -45,7 +45,7 @@
 (defun register-type (type-name parent-gtype type-flags &key force
 		      (type :static)
 		      ;; for :type :dynamic
-		      (type-module *default-type-loading-module* type-module-supplied-p)
+		      (type-module *default-type-loading-module*)
 		      instance-struct-name class-struct-name
 		      class-size base-init base-finalize
 		      class-init class-finalize class-data
@@ -58,8 +58,7 @@ handle dynamic type registration.  In this case register the type with
 g_type_module_register (which in turn calls g_type_register_dynamic.)"
 
     (when (and (eql type :dynamic)
-	     (not type-module-supplied-p)
-	     (null *default-type-loading-module*))
+	       (null *default-type-loading-module*))
 	(init-deferred)
 	(setq type-module *default-type-loading-module*))
 
