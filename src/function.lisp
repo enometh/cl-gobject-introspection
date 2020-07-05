@@ -527,13 +527,23 @@
 (defmethod initialize-copy ((obj builtin-type) (copy builtin-type))
   (copy-slots ((cffi-type)) (obj copy)))
 
+;;madhu 200705
+(defvar *desc-of-type-on-builtin-type-returns-cffi-type* nil)
+
 (defmethod desc-of-type ((builtin-type builtin-type))
   (case (cffi-type-of builtin-type)
-    (:boolean 'boolean)
+    (:boolean (if *desc-of-type-on-builtin-type-returns-cffi-type*
+		  (cffi-type-of builtin-type)
+		  'boolean))
     ((:int8 :uint8 :int16 :uint16 :int32 :uint32 :int64 :uint64 :short :ushort
       :int :uint :long :ulong :ssize :size :time-t :gtype :unichar)
-     'integer)
-    ((:float :double) 'real)
+     (if *desc-of-type-on-builtin-type-returns-cffi-type*
+	 (cffi-type-of builtin-type)
+	 'integer))
+    ((:float :double)
+     (if *desc-of-type-on-builtin-type-returns-cffi-type*
+	 (cffi-type-of builtin-type)
+	 'real))
     (t :pointer)))
 
 (defclass argument-type ()
