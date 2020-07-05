@@ -270,21 +270,40 @@ subclassable"
 		,@class-cstruct-slots-spec)
 	      T))))
 
+(defun %gobject-subclassable-define-init-callback-form (obj)
+  (let* ((callback-name (%gobject-subclassable-get-name obj :instance-init-callback))
+
+	 (arg-name (%gobject-subclassable-get-name obj :instance-arg))
+	 (gir-name (%gobject-subclassable-get-name obj :instance-string))
+	 (lisp-function-name
+	  (intern (concatenate 'string (symbol-name callback-name) "-LISP")
+		  *package*)))
+    `(cffi:defcallback ,callback-name :void ((,arg-name :pointer))
+       (format t ,(format nil "~A (~A*): ~~A~~%" callback-name gir-name)
+	       (list ,arg-name))
+       (when (fboundp ',lisp-function-name)
+	 (,lisp-function-name ,arg-name)))))
+
+(defun %gobject-subclassable-define-class-init-callback-form (obj)
+  (let* ((callback-name (%gobject-subclassable-get-name obj :class-init-callback))
+
+	 (arg-name (%gobject-subclassable-get-name obj :class-arg))
+	 (gir-name (%gobject-subclassable-get-name obj :class-string))
+	 (lisp-function-name
+	  (intern (concatenate 'string (symbol-name callback-name) "-LISP")
+		  *package*)))
+    `(cffi:defcallback ,callback-name :void ((,arg-name :pointer))
+       (format t ,(format nil "~A (~A*): ~~A~~%" callback-name gir-name)
+	       (list ,arg-name))
+       (when (fboundp ',lisp-function-name)
+	 (,lisp-function-name (gobject (%gtype ,arg-name ) obj))))))
+
 (defun %gobject-subclassable-define-init-callbacks (obj)
   "Return a lisp form which defines stub cffi callbacks for the class
 init function and the instance init function for the subclassable"
-  (flet ((%stub (gir-name callback-name arg-name)
-	   `(cffi:defcallback ,callback-name :void ((,arg-name :pointer))
-	      (format t ,(format nil "~A (~A*): ~~A~~%" callback-name gir-name)
-		      (list ,arg-name)))))
-    `(progn
-       ,(%stub (%gobject-subclassable-get-name obj :instance-string)
-	       (%gobject-subclassable-get-name obj :instance-init-callback)
-	       (%gobject-subclassable-get-name obj :instance-arg))
-       ,(%stub (%gobject-subclassable-get-name obj :class-string)
-	       (%gobject-subclassable-get-name obj :class-init-callback)
-	       (%gobject-subclassable-get-name obj :class-arg))
-       T)))
+  `(progn ,@(list
+	     (%gobject-subclassable-define-init-callback-form obj)
+	     (%gobject-subclassable-define-class-init-callback-form obj))))
 
 (defun %gobject-subclassable-register-type-static (obj)
   (with-slots ((parent-obj gir-parent) gir-name) obj
