@@ -176,7 +176,18 @@ g_type_module_register (which in turn calls g_type_register_dynamic.)"
    ;; instance and class C structs are transformed to lisp style names.
    ;; (The struct names for the parent instance and class C structs are still
    ;; camel case)
-   (decamel-p :initarg :decamel-p :initform nil)))
+   (decamel-p :initarg :decamel-p :initform nil)
+
+   ;; vfunc-overrides - a list of cnames which are overriden.  the
+   ;; user agrees to define lisp functions with the name
+   ;; <GIR-NAME>-<VFUNC-NAME>-LISP. which have the same signature as
+   ;; the vfunc (the C signature which is not the same as what
+   ;; `get-vfunc-desc' gives.) we then generate defcallback forms
+   ;; which will in turn call these user defined functions, and
+   ;; register those callbacks in the generated class-init.
+   (vfuncs :initarg :vfunc-overrides :initform nil)
+
+))
 
 ;; For the first example of using REGISTER-TYPE we implement a
 ;; GTypeModule and register it *statically*.  We can then use that
@@ -212,7 +223,7 @@ g_type_module_register (which in turn calls g_type_register_dynamic.)"
 		    (incf i))
 		   (t (return))))))))
 
-(defun %gobject-subclassable-get-name (obj what)
+(defun %gobject-subclassable-get-name (obj what &optional fname)
   "Interns names in the current *package*!!"
   (with-slots ((parent-obj gir-parent) gir-name decamel-p) obj
     (flet ((maybe-decamel (x) (if decamel-p (decamel x) x)))
@@ -237,7 +248,12 @@ g_type_module_register (which in turn calls g_type_register_dynamic.)"
 	  (:instance-arg (intern (decamel instance-string) *package*))
 	  (:class-arg (intern (decamel class-string) *package*))
 	  (:instance-string instance-string)
-	  (:class-string class-string))))))
+	  (:class-string class-string)
+	  ((:func :method :vfunc)
+	   (intern (concatenate 'string (decamel instance-string)
+				"-"
+				(string-upcase (substitute #\- #\_ fname)))
+		   *package*)))))))
 
 (defun %gobject-subclassable-define-cstructs (obj)
   "Return a lisp form which defines opaque cffi defstructs for the
@@ -289,14 +305,19 @@ subclassable"
 
 	 (arg-name (%gobject-subclassable-get-name obj :class-arg))
 	 (gir-name (%gobject-subclassable-get-name obj :class-string))
+	 (vfunc-init-forms (with-slots (vfuncs) obj
+			     (when vfuncs
+			       (mapcar (lambda (x) (%generate-class-init-override obj x))
+				       vfuncs))))
 	 (lisp-function-name
 	  (intern (concatenate 'string (symbol-name callback-name) "-LISP")
 		  *package*)))
     `(cffi:defcallback ,callback-name :void ((,arg-name :pointer))
        (format t ,(format nil "~A (~A*): ~~A~~%" callback-name gir-name)
 	       (list ,arg-name))
+       ,@vfunc-init-forms
        (when (fboundp ',lisp-function-name)
-	 (,lisp-function-name (gobject (%gtype ,arg-name ) obj))))))
+	 (,lisp-function-name ,arg-name)))))
 
 (defun %gobject-subclassable-define-init-callbacks (obj)
   "Return a lisp form which defines stub cffi callbacks for the class
@@ -521,3 +542,38 @@ init function and the instance init function for the subclassable"
 			      $g0-win-ptr))
 (gir-test::with-gtk-thread
   (gir:invoke ($g0-win "show"))))
+
+
+;;; ----------------------------------------------------------------------
+;;;
+;;;
+;;;
+(defun %generate-vfunc-callback-form (obj vfunc-name)
+  "Emit forms for a lisp defmethod and a corresponding cffi:callback
+which calls a lisp function."
+  (let* ((callback-name (%gobject-subclassable-get-name obj :vfunc (concatenate 'string vfunc-name "_callback")))
+	 (lisp-function-name (%gobject-subclassable-get-name obj :vfunc(concatenate 'string vfunc-name "_lisp")))
+	 (vfunc-info
+	  (with-slots ((parent-obj gir-parent)) obj
+	    (object-class-find-vfunc-info parent-obj vfunc-name))))
+    (generate-cffi-defcallback vfunc-info lisp-function-name callback-name)))
+
+(defun %gobject-subclassable-define-vfunc-callbacks (obj)
+  (with-slots (vfuncs) obj
+    (when vfuncs
+      `(progn ,@(mapcar (lambda (vfunc)
+			  (%generate-vfunc-callback-form obj vfunc))
+		       vfuncs)))))
+
+(defun %generate-class-init-override (obj vfunc-name)
+  (let ((klass (%gobject-subclassable-get-name obj :class-arg))
+	(g-object-class
+	 (with-slots  ((object-class gir-parent)) obj
+	   `(nget (require-namespace ,(info-get-namespace (info-of object-class)))
+		  ,(info-get-name (info-of object-class)))))
+	(callback-name (%gobject-subclassable-get-name obj :vfunc (concatenate 'string  vfunc-name "-callback"))))
+    `(setf (cffi:mem-ref ,klass :pointer
+			 (find-vfunc-offset-recursive
+			  (gtype-of ,g-object-class)
+			  ,vfunc-name))
+	   (cffi:callback ,callback-name))))
