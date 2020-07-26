@@ -27,6 +27,7 @@
 	       "ffi-callback-manager"
 	       "gslist"
 	       "glist"
+	       "attr-hash"
                ))
 
 #+nil
