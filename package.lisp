@@ -39,9 +39,9 @@
 (defvar *glib* (gir:require-namespace "GLib"))
 (defvar *gobject* (gir:require-namespace "GObject"))
 #-no-gtk
-(defvar *gtk* (gir:ffi "Gtk" #+lispworks6 "2.0")))
+(defvar *gtk* (gir:ffi "Gtk" #+lispworks6 "2.0" #+wk "3.0")))
 #-no-gtk
-(defvar *gdk* (gir:ffi "Gdk" #+lispworks6 "2.0"))
+(defvar *gdk* (gir:ffi "Gdk" #+lispworks6 "2.0" #+wk "3.0"))
 #-no-gtk
 (defvar *cairo* (gir:require-namespace "cairo"))
 

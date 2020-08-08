@@ -90,7 +90,10 @@
 (defun run-gtk-main ()
   "Enter the GTK main loop."
   (with-simple-restart (cont "CONT")
-    (assert (zerop (gir:invoke (*gtk* "main_level"))))) ; no nesting
+    (assert (zerop   #-no-gtk		; no nesting
+		     (gir:invoke (*gtk* "main_level"))
+		     #+no-gtk
+		     (gir:invoke (*glib* "main_depth")))))
   #-no-gtk
   (progn
     (x11-init-threads)
