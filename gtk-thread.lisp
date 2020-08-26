@@ -87,17 +87,31 @@
 
 (defvar *gtk-main-kill-switch* nil)
 
+#-no-gtk
+(when (and (= (gir:invoke (*gtk* "get_major_version")) 3)
+	   (> (gir:invoke (*gtk* "get_minor_version")) 90))
+  (pushnew :gtk4 *features*))
+
+(defun featurep (x)
+  (when (or (keywordp x)
+	    (setq x (find-symbol (symbol-name x) :keyword)))
+    (find x *features*)))
+
 (defun run-gtk-main ()
   "Enter the GTK main loop."
   (with-simple-restart (cont "CONT")
-    (assert (zerop   #-no-gtk		; no nesting
-		     (gir:invoke (*gtk* "main_level"))
+    (assert (zerop   #-no-gtk
+		     (if (featurep :gtk4)
+			 (gir:invoke (*glib* "main_depth"))
+			 (gir:invoke (*gtk* "main_level")))
 		     #+no-gtk
 		     (gir:invoke (*glib* "main_depth")))))
   #-no-gtk
   (progn
     (x11-init-threads)
-    (gir:invoke (*gtk* "init") nil))
+    (if (featurep :gtk4)
+	(gir:invoke (*gtk* "init"))
+	(gir:invoke (*gtk* "init") nil)))
   ;; todo avoid call to maincontext
   (prog ((default-context (gir:invoke (*glib* "main_context_default"))))
    loop
