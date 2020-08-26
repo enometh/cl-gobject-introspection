@@ -37,13 +37,35 @@
 (progn
 (defvar *gio*  (gir:require-namespace "Gio"))
 (defvar *glib* (gir:require-namespace "GLib"))
-(defvar *gobject* (gir:require-namespace "GObject"))
+(defvar *gobject* (gir:require-namespace "GObject")))
+
+#||
 #-no-gtk
-(defvar *gtk* (gir:ffi "Gtk" #+lispworks6 "2.0")))
+(defvar *gtk* (gir:ffi "Gtk" #+lispworks6 "2.0" #+wk "3.0")))
 #-no-gtk
-(defvar *gdk* (gir:ffi "Gdk" #+lispworks6 "2.0"))
+(defvar *gdk* (gir:ffi "Gdk" #+lispworks6 "2.0" #+wk "3.0"))
 #-no-gtk
 (defvar *cairo* (gir:require-namespace "cairo"))
+||#
+
+(defun featurep (x) (find x *features*))
+
+(defvar *gtk* (load-time-value
+	       (unless (featurep :no-gtk)
+		 (apply #'gir:require-namespace
+			"Gtk"
+			(if (featurep :wk) (list "3.0"))))))
+
+(defvar *gdk* (load-time-value
+	       (unless (featurep :no-gtk)
+		 (apply #'gir:require-namespace
+			"Gdk"
+			(if (featurep :wk) (list "3.0"))))))
+
+(defvar *cairo* (load-time-value
+		 (unless (featurep :no-gtk)
+		   (apply #'gir:require-namespace "cairo" nil))))
+
 
 #+nil
 (import '(*gio* *glib* *gobject* *gtk* *gdk*) "CL-USER")
