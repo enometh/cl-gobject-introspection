@@ -35,6 +35,7 @@
 
 (defun find-callback (loc)
   (with-slots (lock queue free-list) *callback-manager*
+    (declare (ignorable free-list))
     (let ((index (cffi:mem-ref loc :int)))
       (bordeaux-threads:with-lock-held (lock)
 	(elt queue index)))))
