@@ -23,11 +23,16 @@
   :components (
 	       "package"
 	       "gtk-thread"
-	       "gdbus-connection"
 	       "ffi-callback-manager"
 	       "gslist"
 	       "glist"
 	       "attr-hash"
+	       "gdbus-package"
+	       "gdbus-connection"
+	       "gdbus-introspect"
+	       "gdbus-object"
+	       "gdbus-proxy"
+	       "gdbus-server"
                ))
 
 #+nil
