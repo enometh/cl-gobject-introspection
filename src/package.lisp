@@ -188,6 +188,7 @@
    #:get-signal-desc
    #:list-vfuncs-desc
    #:get-vfunc-desc
+   #:get-callback-desc
    #:interface-desc
    #:list-interfaces-desc
    #:struct-class

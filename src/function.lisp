@@ -1080,6 +1080,18 @@
     (cond ((typep func-info 'callable-info)
 	   (build-callable-desc func-info))
 	  (t (warn "cname ~a not a callable in namespace ~a" cname namespace)))))
+
+(defmethod get-callback-desc ((namespace namespace) cname)
+  (let ((callback-info (repository-find-by-name nil (name-of namespace) cname)))
+    (when callback-info
+      (if (typep callback-info 'callable-info)
+	  (build-callable-desc callback-info)
+	  (warn "cname ~a not a callable in namespace ~a" cname namespace)))))
+
+(defmethod build-interface ((info callback-info))
+  (get-callback-desc (require-namespace (info-get-namespace info))
+		     (info-get-name info)))
+
 ;; debug
 #+nil
 (require 'closer-mop)
