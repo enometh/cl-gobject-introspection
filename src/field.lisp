@@ -10,6 +10,11 @@
 (cffi:defcfun g-field-info-set-field 
   :boolean (field gir::info-ffi) (obj :pointer) (value :pointer))
 
+(cffi:defcfun g-field-info-get-offset
+    :int (field gir::info-ffi))
+(cffi:defcfun g-field-info-get-flags
+    :int (field gir::info-ffi))
+
 (defun get (ptr field)
   (cffi:with-foreign-object (giarg '(:union gir:argument))
     (unless (g-field-info-get-field field ptr giarg)
@@ -18,8 +23,15 @@
       (gir::mem-get giarg giarg-type))))
 
 (defun set (ptr field value)
+ (if (typep value 'string) ;; the string has to be freed explicitly
+			   ;; with (cffi:foreign-free (cffi:mem-ref
+			   ;; (this-of struct-instance) :pointer
+			   ;; (field-offset struct-instance
+			   ;; field-name))
+     (setf (cffi:mem-ref ptr :string (g-field-info-get-offset field))
+	    value)
   (cffi:with-foreign-object (giarg '(:union gir:argument))
     (let ((giarg-type (gir::build-argument-type (gir:field-info-get-type field) :nothing)))
       (gir::mem-set giarg value giarg-type)
       (unless (g-field-info-set-field field ptr giarg)
-	(error "FFI set field failed: ~a" (gir:info-get-name field))))))
+	(error "FFI set field failed: ~a" (gir:info-get-name field)))))))
