@@ -99,6 +99,16 @@
 (defun (setf field) (value struct name)
   (set-field! struct name value))
 
+(defmethod field-offset ((struct struct-instance) name)
+  (let* ((struct-class (struct-class-of struct))
+	 (field-info (struct-class-find-field struct-class name)))
+    (gir.field::g-field-info-get-offset field-info)))
+
+(defmethod field-flags ((struct struct-instance) name)
+  (let* ((struct-class (struct-class-of struct))
+	 (field-info (struct-class-find-field struct-class name)))
+    (gir.field::g-field-info-get-flags field-info)))
+
 (defun free-struct (struct)
   (let ((this (this-of struct)))
     (if (cffi:null-pointer-p this)
