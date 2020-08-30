@@ -158,6 +158,8 @@
    #:allocate-struct
    #:free-struct
    #:with-struct
+   #:field-offset
+   #:field-flags
    #:connect
    #:disconnect
 
