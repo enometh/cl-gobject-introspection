@@ -71,8 +71,15 @@
 		   (apply #'gir:require-namespace "cairo" nil))))
 
 
+(defvar *gdk-x11* (load-time-value
+		   (unless (featurep :no-gtk)
+		     (apply #'gir:require-namespace
+			    "GdkX11"
+			    (if (featurep :wk) (list "3.0"))))))
+
+
 #+nil
-(import '(*gio* *glib* *gobject* *gtk* *gdk*) "CL-USER")
+(import '(*gio* *glib* *gobject* *gtk* *gdk* *gdk-x11*) "CL-USER")
 
 (defvar *gi-repository* (gir::ffi "GIRepository" "2.0"))
 
