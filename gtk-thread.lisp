@@ -97,6 +97,13 @@
 	    (setq x (find-symbol (symbol-name x) :keyword)))
     (find x *features*)))
 
+#-no-gtk
+(defun init-gtk ()
+  (x11-init-threads)
+  (if (featurep :gtk4)
+      (gir:invoke (*gtk* "init"))
+      (gir:invoke (*gtk* "init") nil)))
+
 (defun run-gtk-main ()
   "Enter the GTK main loop."
   (with-simple-restart (cont "CONT")
@@ -107,11 +114,7 @@
 		     #+no-gtk
 		     (gir:invoke (*glib* "main_depth")))))
   #-no-gtk
-  (progn
-    (x11-init-threads)
-    (if (featurep :gtk4)
-	(gir:invoke (*gtk* "init"))
-	(gir:invoke (*gtk* "init") nil)))
+  (init-gtk)
   ;; todo avoid call to maincontext
   (prog ((default-context (gir:invoke (*glib* "main_context_default"))))
    loop
@@ -129,6 +132,9 @@
 (run-one-main-context-iteration t)
 
 (defun start-gtk-thread ()
+  #-no-gtk
+  (unless (find :bordeaux-threads *features*)
+    (init-gtk))
   (when (find :bordeaux-threads *features*)
     (with-slots (thread queue free-list) *gtk-main*
       (cond ((and thread (bordeaux-threads:thread-alive-p thread))
@@ -159,6 +165,10 @@
   (format t "run-clisp-window ~S destroyed~&" win)
   (setq *gtk-main-single-threaded-kill-switch* nil))
 
+#+nil
+(loop while  (gir:invoke (*gtk* "events_pending"))
+      count 1
+      do (gir:invoke (*gtk* "main_iteration")))
 
 ;; execute thunk in the default main context
 (defun gtk-enqueue (thunk)
