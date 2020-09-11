@@ -12,9 +12,11 @@
 
 (defpackage "GIR-LIB"
   (:use "CL")
+  (:import-from "GIR" "THIS-OF")
   (:export
    "*GIO*" "*GLIB*" "*GOBJECT*"
    #-no-gtk "*GTK*" #-no-gtk "*GDK*" #-no-gtk "*CAIRO*"
+   #-no-gtk "*GDK-X11*"
    "*GI-REPOSITORY*"
 
    ;; gtk-thread
@@ -30,6 +32,8 @@
    ;; gslist
    "MAP-SLIST" "PREPEND-TO-SLIST" "SLIST-FREE" "SLIST-FREE-FULL"
    "SLIST-LENGTH"
+
+   "THIS-OF"
    ))
 
 (in-package "GIR-LIB")
