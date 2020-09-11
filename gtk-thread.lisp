@@ -78,12 +78,15 @@
   (cffi:foreign-free user-data)
   nil)
 
+(eval-when (load eval compile)
 (cffi:define-foreign-library (libX11)
   (:unix "libX11.so"))
+(cffi:load-foreign-library 'libX11))
 
+(eval-when (load eval compile)
 (defun x11-init-threads ()
   (cffi:load-foreign-library 'libX11)
-  (cffi:foreign-funcall "XInitThreads" :int))
+  (cffi:foreign-funcall "XInitThreads" :int)))
 
 (defvar *gtk-main-kill-switch* nil)
 
@@ -98,6 +101,13 @@
 	    (setq x (find-symbol (symbol-name x) :keyword)))
     (find x *features*)))
 
+#-no-gtk
+(defun init-gtk ()
+  (x11-init-threads)
+  (if (featurep :gtk4)
+      (gir:invoke (*gtk* "init"))
+      (gir:invoke (*gtk* "init") nil)))
+
 (defun run-gtk-main ()
   "Enter the GTK main loop."
   (with-simple-restart (cont "CONT")
@@ -108,11 +118,7 @@
 		     #+no-gtk
 		     (gir:invoke (*glib* "main_depth")))))
   #-no-gtk
-  (progn
-    (x11-init-threads)
-    (if (featurep :gtk4)
-	(gir:invoke (*gtk* "init"))
-	(gir:invoke (*gtk* "init") nil)))
+  (init-gtk)
   ;; todo avoid call to maincontext
   (prog ((default-context (gir:invoke (*glib* "main_context_default"))))
    loop
@@ -130,6 +136,9 @@
 (run-one-main-context-iteration t)
 
 (defun start-gtk-thread ()
+  #-no-gtk
+  (unless (find :bordeaux-threads *features*)
+    (init-gtk))
   (when (find :bordeaux-threads *features*)
     (with-slots (thread queue free-list) *gtk-main*
       (cond ((and thread (bordeaux-threads:thread-alive-p thread))
@@ -180,6 +189,10 @@
   (gir:invoke (win "show_all"))
   (clisp-single-thread-run-loop win))
 
+#+nil
+(loop while  (gir:invoke (*gtk* "events_pending"))
+      count 1
+      do (gir:invoke (*gtk* "main_iteration")))
 
 ;; execute thunk in the default main context
 (defun gtk-enqueue (thunk)
