@@ -1121,6 +1121,64 @@ generate and compile translator clozures over the callback-info.)"
 		(make-list len :initial-element nil)
 		raw-in-args))))
 
+(export 'generate-cffi-defcallback)
+
+(defun generate-cffi-defcallback (callback-info lisp-function-name &optional
+				  (cffi-callback-name
+				   (intern (concatenate 'string (symbol-name lisp-function-name)
+							"-CALLBACK")
+					   *package*)))
+  (let* ((arg-infos (callable-info-get-args callback-info))
+	 (arg-names (mapcar (lambda (arg-info)
+			      (intern (string-upcase
+				       (substitute #\- #\_
+						   (info-get-name arg-info)))
+				      *package*))
+			    arg-infos))
+	 ;; return-type, arg-types, all-types are arg `type-info's
+	 (return-type (callable-info-get-return-type callback-info))
+	 (arg-types (mapcar 'arg-info-get-type arg-infos))
+	 (all-types (cons return-type arg-types))
+	 (foreign-types (mapcar (lambda (type-info)
+				  (parse-type-info type-info :nothing))
+				all-types)))
+    (assert (every (lambda (x) (eql (arg-info-get-direction x) :in))
+		   arg-infos))
+    `(cffi:defcallback ,cffi-callback-name
+	 ,(etypecase (car foreign-types)
+	    (builtin-type (cffi-type-of (car foreign-types)))
+	    (enum-type :int)
+	    (void-type :void)
+	    (pointer-type :pointer))
+	 ,(mapcar (lambda (arg-name cffi-type) `(,arg-name ,cffi-type))
+		  arg-names
+		  (mapcar (lambda (foreign-type)
+			    (typecase foreign-type
+			      (builtin-type (cffi-type-of foreign-type))
+			      (enum-type :int)
+			      (pointer-type :pointer)
+			      (otherwise foreign-type)))
+			  (cdr foreign-types)))
+       (,lisp-function-name
+	,@(mapcar (lambda (arg-name foreign-type arg-type)
+		    (typecase foreign-type
+		      (struct-pointer-type
+		       (assert (eql (type-info-get-tag arg-type) :interface))
+		       (assert (typep (type-info-get-interface arg-type) 'struct-info))
+		       `(build-struct-ptr (nget (require-namespace ,(info-get-namespace arg-type))
+						,(info-get-name (type-info-get-interface arg-type)))
+					  ,arg-name))
+		      (object-pointer-type
+		       (assert (eql (type-info-get-tag arg-type) :interface))
+		       (assert (typep (type-info-get-interface arg-type) 'object-info))
+		       `(build-object-ptr (nget (require-namespace ,(info-get-namespace arg-type))
+						,(info-get-name (type-info-get-interface arg-type)))
+					  ,arg-name))
+		      ((or pointer-type builtin-type) arg-name)
+		      (otherwise arg-name)))
+		  arg-names (cdr foreign-types) arg-types)))))
+
+
 ;; debug
 #+nil
 (require 'closer-mop)
