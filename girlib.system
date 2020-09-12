@@ -34,6 +34,7 @@
 	       "gdbus-proxy"
 	       "gdbus-server"
 	       "gstream"
+	       "glib-base"
                ))
 
 #+nil
