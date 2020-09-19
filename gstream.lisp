@@ -3,6 +3,11 @@
 
 (export '(gio-input-stream gio-output-stream))
 
+#+mkcl
+(shadow (mapcar (lambda (x) (find-symbol x "TRIVIAL-GRAY-STREAMS"))
+		'("CLOSE" "OPEN-STREAM-P" "STREAM-ELEMENT-TYPE"))
+	"GIR-LIB")
+
 (defclass gio-input-stream
     (trivial-gray-streams:fundamental-binary-input-stream
      trivial-gray-streams:fundamental-character-input-stream)
