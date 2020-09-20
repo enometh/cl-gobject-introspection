@@ -1013,7 +1013,7 @@
   (build-function info))
 
 (defclass callable-desc ()
-  ((info :initarg :callable-info)
+  ((info :initarg :callable-info :reader info-of)
    (arguments-desc :reader arguments-desc-of)
    (returns-desc :reader returns-desc-of)))
 
@@ -1084,6 +1084,55 @@
   (get-callback-desc (require-namespace (info-get-namespace info))
 		     (info-get-name info)))
 
+
+;;; ----------------------------------------------------------------------
+;;;
+;;;
+;;;
+
+(defun translate-callback-args (callback-info &optional raw-in-args)
+  "Return a copy of raw-in-args where some cffi pointers have been
+translated to GObjects based on callback-info.
+
+Without RAW-IN-ARGS, operate in DRY-RUN mode, i.e. return a list of
+cl-gir class objects that would be translated. (This can be used to
+generate and compile translator clozures over the callback-info.)"
+  (let* ((arg-infos (callable-info-get-args callback-info))
+	 (len (length arg-infos))
+	 (dry-run-p (endp raw-in-args)))
+    (assert (every (lambda (x) (eql (arg-info-get-direction x) :in))
+		   arg-infos))
+    (unless dry-run-p  (assert (= (length raw-in-args) len)))
+    (mapcar (lambda (arg-info raw-in-arg)
+	      (let ((type-info (arg-info-get-type arg-info)))
+		(multiple-value-bind (foreign-type field)
+		    (parse-type-info type-info :nothing)
+		  (declare (ignorable field))
+		  (typecase foreign-type
+		    (struct-pointer-type
+		     (with-slots (namespace name) foreign-type
+		       (let ((struct-class
+			      (nsget (require-namespace namespace) name)))
+			 (if dry-run-p
+			     struct-class
+			     (build-struct-ptr struct-class raw-in-arg)))))
+		    (object-pointer-type
+		     (with-slots (namespace name) foreign-type
+		       (let ((object-class
+			      (nsget (require-namespace namespace) name)))
+			 (if dry-run-p
+			     object-class
+			     (build-object-ptr object-class raw-in-arg)))))
+		    (t raw-in-arg)))))
+	    arg-infos
+	    (if dry-run-p
+		(make-list len :initial-element nil)
+		raw-in-args))))
+
+;;; ----------------------------------------------------------------------
+;;;
+;;;
+;;;
 
 (export 'generate-cffi-defcallback)
 
