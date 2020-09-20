@@ -1,12 +1,14 @@
 ;; Sat Mar 14 15:14:04 2020 +0530
 (in-package "GIR-LIB")
 
-(export '(gio-input-stream gio-output-stream))
+(eval-when (load eval compile)
+(export '(gio-input-stream gio-output-stream)))
 
 #+mkcl
+(eval-when (load eval compile)
 (shadow (mapcar (lambda (x) (find-symbol x "TRIVIAL-GRAY-STREAMS"))
 		'("CLOSE" "OPEN-STREAM-P" "STREAM-ELEMENT-TYPE"))
-	"GIR-LIB")
+	"GIR-LIB"))
 
 (defclass gio-input-stream
     (trivial-gray-streams:fundamental-binary-input-stream
