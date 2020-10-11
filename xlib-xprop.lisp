@@ -29,7 +29,7 @@
 (defun ensure-atom (atom-name &key xdisplay-ptr)
   (etypecase atom-name
     (integer atom-name)
-    (string (intern-atom atom-name :xdisplay-ptr xdisplay-ptr))))
+    (string (intern-atom atom-name :xdisplay-ptr xdisplay-ptr :only-if-exists nil))))
 
 (defun atom-name (atom &key xdisplay-ptr)
   (cffi:foreign-funcall "XGetAtomName"
