@@ -55,3 +55,14 @@
     (or (car (rassoc value (setq list (nlist-desc namespace enum-name))))
 	(loop for (name . target) in list
 	      if (not (zerop (logand value target))) collect name))))
+
+(define-compiler-macro nget (&whole form namespace &rest names)
+  (declare (ignorable namespace))
+  (if (keywordp (cadr names))
+      `(load-time-value (funcall (nsget ,namespace ,(car names)) ,(cadr names)))
+      form))
+
+#+nil
+(funcall (compiler-macro-function 'nget)
+	 '(nget gir-lib:*gtk* "WindowType" :toplevel)
+         nil)
