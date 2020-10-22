@@ -130,7 +130,8 @@
   (get-properties (this-of object) (list name)))
 
 (defun (setf property) (value object name)
-  (set-properties! (this-of object) (list name value)))
+  (set-properties! (this-of object) (list name value))
+  value)
 
 (cffi:defcfun g-object-is-floating :boolean (obj :pointer))
 (cffi:defcfun g-object-ref-sink :pointer (obj :pointer))
