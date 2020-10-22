@@ -279,3 +279,29 @@ lists."
 #+nil
 (with-output-to-string (*standard-output*)
   (print-arg #(1 2 #S(dict-entry :k "key" :v "val") 3)))
+
+(defun gvariant-parse (string &optional type-string)
+  "Return a GLib.GVariant object.  This function is needed because any
+parse error in \"new_parsed\" is fatal to the calling lisp process so
+we have to wrap g_variant_parse, which see."
+  (when type-string
+    (assert (invoke (*glib*  "variant_type_string_is_valid") type-string)))
+  (let (type)
+    (unwind-protect
+	 (cffi:with-foreign-string (str string)
+	   (setq type (if type-string
+			  (invoke (*glib* "VariantType" "new") type-string)))
+	   (let ((limit (cffi:inc-pointer str (length string))))
+	     (gir::with-gerror err
+	       (let ((ret (cffi:foreign-funcall "g_variant_parse"
+						:pointer (if type
+							     (this-of type)
+							     (cffi:null-pointer))
+						:pointer str
+						:pointer limit
+						:pointer (cffi:null-pointer)
+						:pointer err
+						:pointer)))
+		 (assert (not (cffi:null-pointer-p ret)))
+		 (gir::build-struct-ptr (nget *glib* "Variant") ret)))))
+      (when type (invoke (type "free"))))))
