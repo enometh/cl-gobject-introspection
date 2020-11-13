@@ -52,7 +52,12 @@
     (map-slist-1 slist-ptr
 		 (lambda (ptr)
 		   (push (if object-class
-			     (gir::build-object-ptr object-class ptr)
+			     (etypecase object-class
+			      (gir::struct-class
+			       (gir::build-struct-ptr object-class ptr))
+			      (gir::object-class
+			       (gir::build-object-ptr object-class ptr)))
+			     ;; assume it is a gobject and crash to ldb
 			     (gir::gobject
 			      (cffi:mem-ref (cffi:mem-ref ptr :pointer) :ulong)
 			      ptr))
