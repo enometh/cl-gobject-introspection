@@ -3,12 +3,6 @@
 (eval-when (load eval compile)
 (export '(gio-input-stream gio-output-stream)))
 
-#+mkcl
-(eval-when (load eval compile)
-(shadow (mapcar (lambda (x) (find-symbol x "TRIVIAL-GRAY-STREAMS"))
-		'("CLOSE" "OPEN-STREAM-P" "STREAM-ELEMENT-TYPE"))
-	"GIR-LIB"))
-
 (defclass gio-input-stream
     (trivial-gray-streams:fundamental-binary-input-stream
      trivial-gray-streams:fundamental-character-input-stream)

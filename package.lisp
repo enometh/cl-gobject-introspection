@@ -13,6 +13,9 @@
 (defpackage "GIR-LIB"
   (:use "CL")
   (:import-from "GIR" "THIS-OF")
+  #+mkcl
+  (:shadowing-import-from "TRIVIAL-GRAY-STREAMS"
+   "CLOSE" "OPEN-STREAM-P" "STREAM-ELEMENT-TYPE")
   (:export
    "*GIO*" "*GLIB*" "*GOBJECT*"
    #-no-gtk "*GTK*" #-no-gtk "*GDK*" #-no-gtk "*CAIRO*"
