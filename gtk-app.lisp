@@ -35,6 +35,7 @@
     (unless container-view
       (setq container-view
 	    (gir:invoke (*gtk* "Window" "new")
+			#+wk
 			(gir:nget *gtk* "WindowType" :toplevel))))
     (when (and best-width best-width)
       (gir:invoke ( container-view "set_default_size" )
@@ -49,6 +50,12 @@
 
 (defmethod interface-display ((intf-1 interface))
   (with-slots (container-view) intf-1
+    #-wk
+    (progn
+      (gir:invoke (container-view "unminimize"))
+      (gir:invoke (container-view "present_with_time")
+	      (- (get-universal-time) cl-user:+unix-epoch+)))
+    #+wk
     (gir:invoke (container-view "show_all"))))
 
 (defun display (intf-1)
@@ -62,7 +69,8 @@
 	(assert (list (gir:invoke (*gobject* "type_is_a")
 				  obj-gtype
 				  (gir::gtype-of (gir:nget *gtk* "Window"))))))
-      (gir:invoke (container-view "add")
+      (gir:invoke (container-view #+wk "add"
+				  #-wk "set_child")
 		  (slot-value simple-pane-1 'container-view)))
     container))
 
@@ -134,8 +142,8 @@ container-view"))
   (with-slots (app container-view) self
     ;; do this anyway: in case the GtkApplicationWindow is created
     ;; without an "application" property
-    (gir:invoke (app "add_window") container-view)
-    (gir:invoke (container-view "show_all"))))
+    (gir:invoke (app "add_window") container-view))
+  (interface-display self))
 
 
 ;; call g_application_run which is documented to take control of the
