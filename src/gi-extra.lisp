@@ -111,3 +111,25 @@ or interface which implements the method."
       (loop for field in fields
 	    collect (list field
 			  (field obj (slot-value field 'gir::name)))))))
+
+(defun list-props (obj &optional (object-class (gir-class-of obj)))
+  (loop for desc in  (list-properties-desc object-class)
+	 for name = (name-of desc)
+	 collect (cons name (property obj name))))
+
+(defun g-type-parents (gtype &optional (depth 0))
+  (let ((parent-gtype (g-type-parent gtype)))
+    (if (zerop parent-gtype)
+	nil
+	(cons parent-gtype (g-type-parents parent-gtype (1+ depth))))))
+
+(defun list-all-props (obj)
+  (let* ((gtype (gtype-of obj)))
+    (append (list-props obj)
+	    (loop for intf-gtype in (g-type-interfaces gtype)
+		  append (list-props obj (find-build-interface  (repository-find-by-gtype nil intf-gtype))))
+	    (loop for parent-gtype in (g-type-parents gtype)
+		  append (list-props obj (find-build-interface (repository-find-by-gtype nil parent-gtype)))))))
+
+(defun list-property-names (object-class)
+  (mapcar 'name-of (list-properties-desc object-class)))
