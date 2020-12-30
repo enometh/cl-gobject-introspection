@@ -74,8 +74,11 @@
 		   (apply #'gir:require-namespace "cairo" nil))))
 
 
-(defvar *gdk-x11* (apply #'gir:require-namespace "GdkX11"
-			 (if (featurep :wk) (list "3.0"))))
+(defvar *gdk-x11* (load-time-value
+		   (unless (featurep :no-gtk)
+		     (apply #'gir:require-namespace
+			    "GdkX11"
+			    (if (featurep :wk) (list "3.0"))))))
 
 
 #+nil
