@@ -88,8 +88,9 @@
 (defvar *gtk-main-kill-switch* nil)
 
 #-no-gtk
-(when (and (= (gir:invoke (*gtk* "get_major_version")) 3)
-	   (> (gir:invoke (*gtk* "get_minor_version")) 90))
+(when (or (= (gir:invoke (*gtk* "get_major_version")) 4)
+	  (and (= (gir:invoke (*gtk* "get_major_version")) 3)
+	       (> (gir:invoke (*gtk* "get_minor_version")) 90)))
   (pushnew :gtk4 *features*))
 
 (defun featurep (x)
