@@ -225,3 +225,9 @@
 
 #+nil
 (gtk-main-queue *gtk-main*)
+
+#+nil
+(setq *gtk-main-kill-switch* t)
+
+#+nil
+(setq *gtk-main-kill-switch* nil)
