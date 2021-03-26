@@ -10,7 +10,7 @@
 (in-package "GIR-LIB")
 (eval-when (load eval compile)
 (import '(gir:this-of))
-(export '(make-attr-hash set-attr-hash rem-attr-hash
+(export '(make-attr-hash set-attr-hash rem-attr-hash get-attr-hash
 	  set-attr-hash-from-alist attr-hash-to-alist)))
 
 (defun %make-attr-hash ()
@@ -94,27 +94,38 @@ was found and removed."
     ret))
 
 (defclass glib-hashtable-wrapper ()
-  ((this :type cffi:foreign-pointer :reader this-of)))
+  ((this :type cffi:foreign-pointer :reader this-of :initarg :ptr)))
 
 (defmethod initialize-instance :after
     ((self glib-hashtable-wrapper) &key
      (hash-function (cffi:foreign-symbol-pointer "g_str_hash"))
-     (equal-function (cffi:foreign-symbol-pointer "g_str_equal")))
+     (equal-function (cffi:foreign-symbol-pointer "g_str_equal"))
+     alist)
   (check-type hash-function cffi:foreign-pointer)
   (check-type equal-function cffi:foreign-pointer)
   (with-slots (this) self
-    (setq this (cffi:foreign-funcall "g_hash_table_new"
-				     :pointer hash-function
-				     :pointer equal-function
-				     :pointer))
-    (let ((a (cffi:pointer-address this)))
-      (tg:finalize self
-		   (lambda ()
-		     (cffi:foreign-funcall "g_hash_table_unref"
-					   :pointer (cffi:make-pointer a)
-					   :void))))))
-(defun make-attr-hash ()
-  (make-instance 'glib-hashtable-wrapper))
+    (unless (and (slot-boundp self 'this) this)
+      (setq this (cffi:foreign-funcall "g_hash_table_new"
+				       :pointer hash-function
+				       :pointer equal-function
+				       :pointer))
+      (let ((a (cffi:pointer-address this)))
+	(tg:finalize self
+		     (lambda ()
+		       (cffi:foreign-funcall "g_hash_table_unref"
+					     :pointer (cffi:make-pointer a)
+					     :void)))))
+    (check-type this cffi:foreign-pointer)
+    (when alist
+      (%attr-hash-from-alist alist this))))
+
+
+(defun make-attr-hash (&rest rest &key ptr alist)
+  "If PTR is supplied it must be a pointer to a GHashTable. Otherwise an
+empty GHashtable is created. If ALIST is supplied the key-value pairs
+are added to the wrapper object."
+  (declare (ignorable ptr alist))
+  (apply #'make-instance 'glib-hashtable-wrapper rest))
 
 (defmethod get-attr-hash ((self glib-hashtable-wrapper) (key string) &optional default)
   (%get-attr-hash (this-of self) key default))
