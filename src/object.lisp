@@ -269,6 +269,15 @@
 	(build-callable-desc func-info)
 	(error "~a is not a method name" cname))))
 
+(defmethod get-class-function-desc ((object-class object-class) name)
+  (let* ((cname (c-name name))
+	 (callable-info
+	  (object-class-get-constructor-class-function-info object-class
+							    cname)))
+    (if callable-info
+	(build-callable-desc callable-info)
+	(error "~a is not a class function name" cname))))
+
 (defmethod list-class-functions-desc ((object-class object-class))
   (let ((info (info-of object-class)))
     (iter (for method-info :in (object-info-get-methods info))
@@ -383,6 +392,13 @@
 	  (when (class-function? (function-info-get-flags method-info))
 	    (collect (build-callable-desc method-info))))))
 
+(defmethod get-class-function-desc ((interface-desc interface-desc) name)
+  (let* ((cname (c-name name))
+	 (info (info-of interface-desc))
+	 (callable-info (interface-info-find-method info cname)))
+    (when callable-info
+      (assert (class-function? (function-info-get-flags callable-info)))
+      (build-callable-desc callable-info))))
 
 (defmethod list-signals-desc ((interface-desc interface-desc))
   (let ((info (info-of interface-desc)))
