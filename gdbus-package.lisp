@@ -13,6 +13,8 @@
    ;; dbus-connection
    "DBUS-SESSION-BUS"
    "DBUS-SYSTEM-BUS"
+   "DBUS-CLOSE-BUS"
+   "DBUS-FORGET-SINGLETON"
    "BUS-NAME"
 
    "ERROR-DOMAIN-QUARK"
