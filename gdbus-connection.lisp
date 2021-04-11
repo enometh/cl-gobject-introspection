@@ -8,25 +8,36 @@
 ;;; SINGLETON CONNECTIONS
 ;;;
 
-(defvar *dbus-system-connection* nil "GDBusConnection to the system bus")
-(defvar *dbus-session-connection* nil "GDBusConnection to the system bus")
+(defvar *dbus-system-connection* nil "GDBusConnection to the system bus.")
+(defvar *dbus-session-connection* nil "GDBusConnection to the session bus.")
 
-(defun dbus-init-bus (&optional bus)
-  "Establish the connection to D-Bus. BUS can be either :SYSTEM or
+(defun dbus-init-bus (&optional bus-type)
+  "Ensure an open connection to D-Bus. BUS-TYPE can be either :SYSTEM or
 :SESSION. Defaults to :SESSION."
-  (let* ((bus (ecase bus
-		((:session :system) bus)
-		((nil) :session)))
-	 (bus-connection-var (ecase bus
-			       (:session  '*dbus-session-connection*)
+  (let* ((bus-type (ecase bus-type
+		     ((:session :system) bus-type)
+		     ((nil) :session)))
+	 (bus-connection-var (ecase bus-type
+			       (:session '*dbus-session-connection*)
 			       (:system '*dbus-system-connection*)))
 	 (connection nil))
-    (unless (setq connection (symbol-value bus-connection-var))
-      (setq connection
-	    (set bus-connection-var
-		 (invoke (*gio* "bus_get_sync")
-			 (nget *gio* "BusType" bus) nil)))
-      (setf (property connection "exit-on-close") nil))
+    (unless (and (setq connection (symbol-value bus-connection-var))
+		 (not (invoke (connection "is_closed")))
+		 (progn (format t "dbus_init_bus ~A: trying to get a new connection~&" bus-type)
+			t))
+      (let ((address (invoke (*gio* "dbus_address_get_for_bus_sync")
+			     (nget *gio* "BusType" bus-type)
+			     nil)))
+	(format t "dbus_init_bus: connecting to ~A~&" address)
+	(setq connection
+	      (set bus-connection-var
+		   (invoke (*gio* "DBusConnection" "new_for_address_sync")
+			   address
+			   (logior (nget *gio* "DBusConnectionFlags" :authentication-client)
+				   (nget *gio* "DBusConnectionFlags" :message-bus-connection))
+			   nil
+			   nil)))
+	(setf (property connection "exit-on-close") nil)))
     (assert (not (invoke (connection "is_closed"))))
     (values connection
 	    (invoke (connection "get_unique_name")))))
@@ -37,39 +48,124 @@
 (defun dbus-session-bus ()
   (or *dbus-session-connection* (dbus-init-bus :session)))
 
+;;
+;; dbus-close-bus - implemented asynchronously
+;;
+
 #+nil
 (dbus-init-bus)
 
-;; NO CLOSE METHOD - once a connection is closed it remains closed
-;; until the process quits.
-;;
-;; (gir:get-method-desc (gir:nget *gio* "DBusConnection") "close")
-;;
+#+nil
+(get-callback-desc *gio* "AsyncReadyCallback")
 
-#+BOGUS
-(cffi:defcallback on-connection-close :void
-    ((source-object :pointer)		;GObject*
-     (result :pointer)			;GAsyncResult*
-     (user-data :pointer)		;gpointer
-     )
-  (warn "Closed DBUS Connection: source result user-dataa=~S"
-	(list source-object result user-data)))
+#+nil
+(gir::generate-cffi-defcallback
+ (info-of (nget *gio* "AsyncReadyCallback"))
+ 'on-connection-close)
 
-#+BOGUS
+#+nil
+(get-method-desc (nget *gio* "DBusConnection") "close_finish")
+
+(CFFI:DEFCALLBACK ON-CONNECTION-CLOSE-CALLBACK
+    :VOID
+    ((SOURCE-OBJECT :POINTER)
+     (RES :POINTER)
+     (USER-DATA :POINTER))
+  "ARGS:  SOURCE-OBJECT Object. RES AsyncResult."
+  (ON-CONNECTION-CLOSE
+   (GIR::GOBJECT (GTYPE SOURCE-OBJECT) SOURCE-OBJECT)
+   (GIR::GOBJECT (GTYPE RES) RES) USER-DATA))
+
+(defun on-connection-close (connection async-result user-data)
+  (let ((result (invoke (connection "close_finish") async-result)))
+    (format t "closed DBUS Connection: (source-object result user-data)=~S"
+	    (list connection result user-data))))
+
 (defun dbus-close-bus (&optional bus-type)
   (let* ((bus-type (ecase bus-type
-		((:session :system) bus-type)
-		((nil) :session)))
+		     ((:session :system) bus-type)
+		     ((nil) :session)))
 	 (bus-connection-var (ecase bus-type
 			       (:session '*dbus-session-connection*)
 			       (:system '*dbus-system-connection*)))
-	 (bus (symbol-value bus-connection-var)))
-    (when bus
-      (prog1 (gir:invoke (bus "close") nil (cffi:callback on-connection-close) (cffi:null-pointer))
+	 (connection (symbol-value bus-connection-var)))
+    (when connection
+      (prog1 (gir:invoke (connection "close")
+			 nil
+			 (cffi:callback on-connection-close-callback)
+			 (cffi:null-pointer))
+	#+nil
 	(set bus-connection-var nil)))))
 
 #+nil
 (dbus-close-bus :session)
+
+#+nil
+(invoke ((dbus-session-bus) "is_closed"))
+
+#+nil
+(defun pdlsym (cname library-path &key elf
+	       (pid (gir-lib::getpid)))
+  (check-type elf elf:elf)
+  ;; read-elf is expensive so better have the caller supply it
+  (unless elf (setq elf (elf:read-elf library-path)))
+  (let ((base-address
+	 (with-open-file (stream (format nil "/proc/~D/maps" pid))
+	   (loop for line = (read-line stream nil)
+		 while line do
+		 (when (search library-path line :from-end t)
+		   (return
+		     (parse-integer line :end (position #\- line)
+				    :radix 16))))))
+	(elf-symbol (elf:named-symbol elf cname)))
+    (assert elf-symbol)
+    (assert base-address)
+    (cffi:make-pointer (+ base-address (elf:value elf-symbol)))))
+
+#||
+(require 'elf)				;eschulte's
+(check-type $f elf:elf)
+(time (setq $f (elf:read-elf "/usr/lib64/libgio-2.0.so.0")))
+;real time : 48.048 secs
+;run time  : 45.603 secs
+;gc count  : 557 times
+;consed    : 43588343296 bytes
+(setq $ptr (pdlsym "_g_bus_forget_singleton"
+		   "/usr/lib64/libgio-2.0.so.0.6800.0"
+		   :elf $f))
+(setq $bus
+      (invoke (*gio* "bus_get_sync")  (nget *gio* "BusType" :session) nil))
+(invoke ($bus "is_closed"))
+(invoke ($bus "close_sync") nil)
+(invoke ($bus "is_closed"))
+(cffi:foreign-funcall-pointer $ptr ()
+			      :int (gir:nget *gio* "BusType" :session)
+			      :void)
+(setq $bus
+      (invoke (*gio* "bus_get_sync")  (nget *gio* "BusType" :session) nil))
+(invoke ($bus "is_closed"))
+||#
+
+(defun dbus-forget-singleton (&optional bus-type)
+  (let* ((bus-type (ecase bus-type
+		     ((:session :system) bus-type)
+		     ((nil) :session)))
+	 (bus-connection-var (ecase bus-type
+			       (:session '*dbus-session-connection*)
+			       (:system '*dbus-system-connection*)))
+	 (connection (symbol-value bus-connection-var)))
+    (when connection
+      (assert (invoke (connection "is_closed"))
+	  nil
+	  "Close the connection first.")
+      (set bus-connection-var nil))))
+
+#+nil
+(progn
+(invoke ((dbus-session-bus) "is_closed")) ; T
+(dbus-forget-singleton)
+(invoke ((dbus-session-bus) "is_closed")) ;NIL
+)
 
 
 ;;; ----------------------------------------------------------------------
