@@ -125,7 +125,7 @@ if key was already in the table."
 	(setf (gethash namespace *namespace-cache*)
 	      (make-instance 'namespace :name namespace :version version)))))
 
-(declaim (inline ffi))
+;;(declaim (inline ffi))
 (defun ffi (namespace &optional version)
   (require-namespace namespace version))
 
