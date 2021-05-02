@@ -1,6 +1,6 @@
 (in-package :gir)
 
-(declaim (optimize (debug 3) (speed 0)))
+;;(declaim (optimize (debug 3) (speed 0)))
 
 (cffi:defcfun g-closure-add-finalize-notifier :void
   (closure :pointer) (data :pointer) (func :pointer))
