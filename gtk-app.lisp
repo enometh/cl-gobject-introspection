@@ -264,26 +264,77 @@ the top-level window for the application."
 ;;;
 ;;;
 
+;; callback-symbol-alist is a list of (string_name callback-symbol) where
+;; `string_name' appears in the UI XML and will resolve to a function
+;; which is handled by the function `callback-symbol'
+;;
+;; use (gir:generate-cffi-defcallback SINGAL-INFO NAME) to generate a
+;; callback function NAME-CALLBACK and (defun NAME) to implement the
+;; callback.
+;;
+;; when gtk builder is initialized it can expect to process a
+;; <signal name=\"clicked\" handler=\"example_4_clicked_cb\"/>
+;;
+;; provided that the following has happened
+;;
+;; (gir:generate-cffi-defcallback
+;; (gir:info-of (gir:get-signal-desc (gir:nget  *gtk* "Button") "clicked"))
+;;  'example-4-clicked-cb)
+;;
+;; (defun example-4-clicked-cb (button) ... )
+;;
+;; and the alist has an entry
+;; '("exmaple_4_clicked_cb" example-4-clicked-cb-callback)
+
+(defun update-builder-scope (scope callback-symbol-alist)
+  "scope is a GtkBuilderScope"
+  (loop for (callback-name callback-symbol) in callback-symbol-alist
+	  for cffi-callback-address =
+	  (if (cffi:pointerp callback-symbol)
+	      callback-symbol
+	      (let (ret)
+		(assert (symbolp callback-symbol))
+		(setq ret (cffi:get-callback callback-symbol))
+		(assert ret)
+		ret))
+	  do
+	  (gir:invoke (scope "add_callback_symbol")
+		      callback-name cffi-callback-address)))
+
+;; builder-ui-path and builder-ui-string can be lists of paths and
+;; strings the ACTIVATE method will add all of them.
+
 (defclass gtk-application-builder-mixin ()
   ((builder-ui-path :initarg :ui-path :initform nil)
    (builder-ui-string :initarg :ui-string :initform nil)
    (main-window-id :initform "window" :initarg :main-window-id)
-   (main-window-gir-name :initform "Window" :initarg :main-window-gir-name)))
+   (main-window-gir-name :initform "Window" :initarg :main-window-gir-name)
+   (callback-symbol-alist :initform nil :initarg :callback-symbol-alist)))
 
 (defmethod activate ((self gtk-application-builder-mixin))
   "calls activate-with-builder, which override"
   (with-slots (app builder-ui-path builder-ui-string container-view
-		   main-window-id main-window-gir-name)
+		   main-window-id main-window-gir-name
+		   callback-symbol-alist)
       self
     (let ((builder (gir:invoke (*gtk* "Builder" "new"))))
-      (or (and builder-ui-path
-	       (gir:invoke (builder "add_from_file")
-			   (namestring (truename builder-ui-path))))
-	  (and builder-ui-string
-	       (gir:invoke (builder "add_from_string")
-			   builder-ui-string
-			   (length builder-ui-string)))
-	  (error "builder-ui not supplied with either :ui-path or :ui-string"))
+      (when callback-symbol-alist
+	(update-builder-scope (gir:property builder "scope")
+			      callback-symbol-alist))
+      (when builder-ui-path
+	(dolist (path (if (consp builder-ui-path)
+			  builder-ui-path
+			  (list builder-ui-path)))
+	  (gir:invoke (builder "add_from_file")
+		      (namestring (truename path)))))
+      (when builder-ui-string
+	(dolist (string (if (consp builder-ui-string)
+			    builder-ui-string
+			    (list builder-ui-string)))
+	  (gir:invoke (builder "add_from_string")
+		      string  (length string))))
+      (unless (or builder-ui-path builder-ui-string)
+	(warn "builder-ui not supplied via either :ui-path or :ui-string"))
       (activate-with-builder self builder
 			     :main-window-id main-window-id
 			     :main-window-gir-name main-window-gir-name))))
@@ -363,3 +414,71 @@ the top-level window for the application."
 (remhash "org.gtk.example3" *gtk-applications*)
 (with-gtk-thread (setq $app (make-instance 'example-3)))
 ||#
+
+
+(defvar +example-4-ui+ "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<interface>
+  <object class=\"GtkApplicationWindow\" id=\"window\">
+    <property name=\"can_focus\">False</property>
+    <child>
+      <object class=\"GtkBox\">
+        <property name=\"visible\">True</property>
+        <property name=\"can_focus\">False</property>
+        <property name=\"orientation\">vertical</property>
+        <child>
+          <object id=\"quit\" class=\"GtkButton\">
+            <property name=\"visible\">True</property>
+            <property name=\"label\">Quit</property>
+            <signal name=\"clicked\" handler=\"example_4_clicked_cb\"/>
+          </object>
+        </child>
+     </object>
+    </child>
+  </object>
+</interface>
+")
+
+(defvar $app-4 nil)
+
+(defun example-4-clicked-cb (button)
+  (declare (ignore button))
+  (format t "example-4-clicked-cb: quitting.~&")
+  (when $app-4 (quit $app-4)))
+
+#+nil
+(gir:generate-cffi-defcallback
+ (gir:info-of (gir:get-signal-desc (gir:nget  *gtk* "Button") "clicked"))
+ 'example-4-clicked-cb)
+
+(CFFI:DEFCALLBACK EXAMPLE4-CLICKED-CB-CALLBACK
+    :VOID
+    ((SELF :POINTER) (DATA :POINTER))
+  "ARGS:  <SELF>"
+  (DECLARE (IGNORABLE DATA))
+  (EXAMPLE-4-CLICKED-CB
+   (UNLESS (CFFI-SYS:NULL-POINTER-P SELF)
+     (GIR::GOBJECT (GIR:GTYPE SELF) SELF))))
+
+(defclass example-4 (gtk-application-builder-mixin ;first!!
+		     gtk-application-mixin)
+  ()
+  (:default-initargs
+   :ui-string +example-4-ui+
+   :title "Example 4"
+   :application-id "org.gtk.example4"
+   :main-window-id "window"
+   :callback-symbol-alist
+   `(("example_4_clicked_cb" example4-clicked-cb-callback))
+   :main-window-gir-name "ApplicationWindow"))
+
+#+nil
+(defvar $app-4 nil)
+
+#+nil
+(with-gtk-thread (setq $app-4 (make-instance 'example-4)))
+
+#+nil
+(run $app-4)
+
+#+nil
+(quit $app-4)
