@@ -106,16 +106,22 @@
    :title "Example-0"))
 
 #+nil
-(start-gtk-thread)
+(gir-lib:start-gtk-thread)
 
 #+nil					; in a multi-threaded lisp:
 (display (make-instance 'hello-world))
 
 #+nil
-(contain (make-instance 'title-pane :text "foo bar")
+(contain (setq $a (make-instance 'title-pane :text "foo bar"))
 	 :title "Title Pane Container"
 	 :best-height 200
 	 :best-width 300)
+
+#||
+(gir:enum-value-to-string *gtk*  "SizeRequestMode" (gir:invoke ((slot-value $a 'container-view) "get_request_mode")))
+(gir:invoke ((slot-value $a 'container-view) "get_size_request"))
+(gir:invoke ((slot-value $a 'container-view) "get_width"))
+||#
 
 
 ;;; ----------------------------------------------------------------------
@@ -395,6 +401,7 @@ the top-level window for the application."
 
 
 #||
+(user::string->file +example-3-ui+ "/dev/shm/1.ui")
 (gir:get-method-desc (gir:nget *glib* "SList") "length")
 (setq $sl (gir::build-struct-ptr (gir:nget *glib* "SList") $l))
 (gir:invoke ($sl "length"))
