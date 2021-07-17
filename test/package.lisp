@@ -1,4 +1,4 @@
-;; -*- mode: Common-Lisp -*-
+;; -*- mode: Lisp -*-
 
 (in-package :common-lisp-user)
 
