@@ -200,14 +200,17 @@ state. See RUN-SAFE instead."
 (defmethod initialize-instance :after ((self gtk-application-mixin) &key)
   (with-slots (application-id app activate-id) self
     (check-type application-id string  "must supply application-id")
-    (assert (not (gethash application-id *gtk-applications*)))
+    (with-simple-restart (replace "Replace it in the table")
+      (assert (not (gethash application-id *gtk-applications*))))
     (setf (gethash application-id *gtk-applications*) self)
     (setq app
 	  (gir:invoke ( *gtk* "Application" "new" )
 		      application-id
 		      (logior
 		       (gir:nget *gio* "ApplicationFlags" :flags_none)
-		       (gir:nget *gio* "ApplicationFlags" :non_unique))
+		       (gir:nget *gio* "ApplicationFlags" :replace)
+		       (gir:nget *gio* "ApplicationFlags" :allow-replacement)
+		       (gir:nget *gio* "ApplicationFlags" :non-unique))
 		      ))
     (setq activate-id (gir:connect app "activate"
 				   'gtk-application-activate-callback))))
