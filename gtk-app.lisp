@@ -140,8 +140,12 @@
 
 ;; ACTIVATE SHOULD NOT BE CALLED DIRECTLY
 (defmethod activate ((self gtk-application-mixin))
-  (error "define (activate gtk-application-mixin) to initialize
-container-view"))
+  "Default direct method should set the container view"
+  (with-slots ((win container-view) app) self
+    (setq win (gir:gobject-new (gir:gtype-of
+				(gir:nget *gtk* "ApplicationWindow"))
+			       "application"
+			       (gir::this-of app)))))
 
 (defmethod activate :around ((self gtk-application-mixin))
   ;; direct method must set container-view
@@ -304,9 +308,8 @@ If a wrong type name lisp is supplied *LISP* *WILL* *ABORT*.
   (:default-initargs
    :application-id "org.gtk.Example1"))
 
-(defmethod activate ((app example-1))
+(defmethod activate :after  ((app example-1))
   (with-slots ((win container-view) app) app
-    (setq win (gir:invoke (*gtk* "ApplicationWindow" "new") app))
     (gir:invoke ( win "set_title" ) "Example1")
     (gir:invoke ( win "set_default_size" ) 600 400)))
 
