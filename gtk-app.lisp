@@ -243,20 +243,55 @@ wedged."
 	   #+nil
       (format t "error run-safe ~S:~&" self))))
 
-(defun builder-get-object (builder widget-id widget-gir-name)
+(defun builder-get-object (builder widget-id &optional widget-gir-name)
+  "If WIDGET-GIR-NAME is given use old logic to construct an object in
+the Gtk namespace with that name. Otherwise construct a gobject which
+may not be in g-i repository but which may have been registered
+outside g-i repository."
+  (check-type widget-id string)
   (let ((obj (gir:invoke (builder "get_object") widget-id)))
     (let ((ptr (gir::this-of obj)))
-      (gir::build-object-ptr (gir:nget *gtk* widget-gir-name) ptr))))
+      (if (stringp widget-gir-name)
+	  (gir::build-object-ptr (gir:nget *gtk* widget-gir-name) ptr)
+	  (gir::%gobject ptr)))))
 
 (defmethod activate-with-builder ((self gtk-application-mixin) builder &key
-				  (main-window-id "window")
-				  (main-window-gir-name "Window"))
-  "Default method looks for a GtkWindow with id \"window\" to set as
-the top-level window for the application."
+				  (main-window-id "window"
+						  main-window-id-supplied-p)
+				  (main-window-gir-name
+				   "ApplicationWindow"
+				   main-window-gir-name-supplied-p)
+				  key-val-props)
+  "Default values of parameters look for a \"GtkApplicationWindow\" with
+id \"window\" to set as the top-level window for the application.
+
+If the MAIN-WINDOW-ID is specified through a builder spec then
+MAIN-WINDOW-GIR-NAME is looked up in the Gtk namespace.
+
+But we need not require that object be specified through the builder.
+In that case pass a value of NIL for MAIN-WINDOW-ID and pass in either
+the GType or the global type name of the required object through
+for MAIN-WINDOW-GIR-NAME.
+
+If a wrong type name lisp is supplied *LISP* *WILL* *ABORT*.
+"
+  (assert main-window-id-supplied-p)
+  (assert main-window-gir-name-supplied-p)
+  (check-type main-window-id (or null string))
   (with-slots (container-view) self
-    (setq container-view (builder-get-object builder
-					  main-window-id
-					  main-window-gir-name))))
+    (setq container-view
+	  (if main-window-id
+	      (builder-get-object builder
+				  main-window-id
+				  main-window-gir-name)
+	      (let ((gtype
+		     (etypecase main-window-gir-name
+		       (integer main-window-gir-name)
+		       (string
+			(cffi:foreign-funcall "g_type_from_name"
+					      :string main-window-gir-name
+					      :ulong)))))
+		(apply #'gir:gobject-new gtype key-val-props))))))
 
 (start-gtk-thread)
 
