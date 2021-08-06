@@ -138,6 +138,7 @@
    (activate-id)
    (status)))
 
+;; ACTIVATE SHOULD NOT BE CALLED DIRECTLY
 (defmethod activate ((self gtk-application-mixin))
   (error "define (activate gtk-application-mixin) to initialize
 container-view"))
@@ -157,6 +158,8 @@ container-view"))
 ;; the thunk won't return until the run loop exits.
 
 (defmethod run ((self gtk-application-mixin))
+  "This calls g_application_run which usually puts lisp in an unusable
+state. See RUN-SAFE instead."
   (with-slots (app status) self
     (with-gtk-thread
       (let ((errorp t))
@@ -174,6 +177,7 @@ container-view"))
 ;; tears down the application.
 
 (defmethod quit ((self gtk-application-mixin))
+  "This closes the application window. See Also: REALLY-QUIT"
   (with-slots ((win container-view) app) self
     (with-gtk-thread
       (let ((errorp t))
@@ -275,7 +279,7 @@ the top-level window for the application."
 (with-gtk-thread (setq $app-1 (make-instance 'example-1)))
 
 #+nil
-(run $app-1)
+(run-safe $app-1)
 
 #+nil
 (quit $app-1)
@@ -424,7 +428,7 @@ the top-level window for the application."
 (with-gtk-thread (setq $app-3 (make-instance 'example-3)))
 
 #+nil
-(run $app-3)
+(run-safe $app-3)
 
 #+nil
 (quit $app-3)
@@ -515,7 +519,7 @@ the top-level window for the application."
 (with-gtk-thread (setq $app-4 (make-instance 'example-4)))
 
 #+nil
-(run $app-4)
+(run-safe $app-4)
 
 #+nil
 (quit $app-4)
