@@ -208,6 +208,34 @@ container-view"))
     (setq activate-id (gir:connect app "activate"
 				   'gtk-application-activate-callback))))
 
+(defmethod really-quit ((self gtk-application-mixin))
+  "GApplication is said to be useless after invoking this. Should also
+unregister from D-Bus. But it doesn't. g_application_quit merely quits
+the main loop of run if it is running and the state machine is already
+wedged."
+  (with-slots (app) self
+    (let ((id (gir:invoke (app "get_application_id"))))
+      (gir:invoke (app "quit"))
+      (gir::g-object-unref (gir::this-of app))
+      (remhash id *gtk-applications*))))
+
+(defmethod register ((self gtk-application-mixin))
+  (with-slots (app) self
+    (or (gir:invoke (app "get_is_registered"))
+	(gir:invoke (app "register") nil))))
+
+(defmethod run-safe ((self gtk-application-mixin))
+  "Invoke REGISTER and ACTIVATE"
+  (gir-lib:with-gtk-thread
+    (unwind-protect
+	 (with-slots (app) self
+	   (cond ((register self)
+		  (format t "ARRANGING TO CALL ACTIVATE~&")
+		  (gir:invoke (app "activate")))
+		 (t (format t "RUN-SAFE: not registered~&"))))
+	   #+nil
+      (format t "error run-safe ~S:~&" self))))
+
 (defun builder-get-object (builder widget-id widget-gir-name)
   (let ((obj (gir:invoke (builder "get_object") widget-id)))
     (let ((ptr (gir::this-of obj)))
@@ -389,9 +417,11 @@ the top-level window for the application."
     (gir:invoke ( container-view "set_title" ) "Example-3")
     (gir:invoke ( container-view "set_default_size" ) 600 400)))
 
+#+nil
+(defvar $app-3 nil)
 
 #+nil
-(defvar $app-3 (make-instance 'example-3))
+(with-gtk-thread (setq $app-3 (make-instance 'example-3)))
 
 #+nil
 (run $app-3)
