@@ -133,3 +133,14 @@ or interface which implements the method."
 
 (defun list-property-names (object-class)
   (mapcar 'name-of (list-properties-desc object-class)))
+
+(export '(type-class-peek get-vfunc-function-pointer))
+(defun type-class-peek (gtype)
+  (or (invoke ((require-namespace "GObject") "type_class_peek") gtype)
+      (invoke ((require-namespace "GObject") "type_class_ref") gtype)))
+
+(defun get-vfunc-function-pointer (object-class cname)
+  (cffi:mem-ref
+   (this-of (type-class-peek (gtype-of object-class)))
+   :pointer
+   (find-vfunc-offset-recursive (gtype-of object-class) cname)))
