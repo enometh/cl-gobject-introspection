@@ -37,6 +37,7 @@
 	       "glib-base"
 	       "xlib-xprop"
 	       "inifile"
+	       "settings"
                ))
 
 #+nil
