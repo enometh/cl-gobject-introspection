@@ -50,13 +50,17 @@
 
 (defmethod interface-display ((intf-1 interface))
   (with-slots (container-view) intf-1
+    #+(and clisp (not mt))
+    (gir-lib::clisp-single-thread-register-destroy-handler container-view)
     #-wk
     (progn
       (gir:invoke (container-view "unminimize"))
       (gir:invoke (container-view "present_with_time")
 	      (- (get-universal-time) cl-user:+unix-epoch+)))
     #+wk
-    (gir:invoke (container-view "show_all"))))
+    (gir:invoke (container-view "show_all"))
+    #+(and clisp (not mt))
+    (gir-lib::clisp-single-thread-run-loop container-view)))
 
 (defun display (intf-1)
   (with-gtk-thread (interface-display intf-1)))
@@ -81,10 +85,14 @@
       (setq container (apply #'make-container element interface-args))
       (setf (element-interface element) container)
       (with-slots (container-view) container
+	#+(and clisp (not mt))
+	(gir-lib::clisp-single-thread-register-destroy-handler container-view)
 	(gir:connect container-view "destroy"
 		     (lambda (window)
-		       (declare (ignore window))
-		       (setf (element-interface element) nil)))))
+		       (declare (ignorable window))
+		       (setf (element-interface element) nil)
+		       #+(and clisp (not mt))
+		       (gir-lib::clisp-single-thread-run-loop window)))))
     (display container)
     element))
 
