@@ -202,3 +202,125 @@
     (assert (plusp regid) nil "failed to register.")
     (assert (not (find dbus-obj *dbus-registered-objects*)) nil "sanity")
     (push dbus-obj *dbus-registered-objects*)))
+
+
+;;; ----------------------------------------------------------------------
+;;;
+;;; madhu 200913  - gdbus-eval-server.lisp
+;;;
+
+(defvar $eval-server-introspection-xml
+  "<node>
+<interface name=\"code.girlib.EvalServer\">
+<method name=\"Eval\">
+<arg name=\"input\" type=\"s\" direction=\"in\"/>
+<arg name=\"success\" type=\"b\" direction=\"out\"/>
+<arg name=\"result\" type=\"s\" direction=\"out\"/>
+<arg name=\"output\" type=\"s\" direction=\"out\"/>
+<arg name=\"error\" type=\"s\" direction=\"out\"/>
+</method>
+</interface>
+</node>")
+
+#+nil
+(setq $node-info (dbus-node-info-from-xml $eval-server-introspection-xml))
+
+;; from slynk.lisp
+(defmacro without-printing-errors ((&key object stream
+                                        (msg "<<error printing object>>"))
+                                  &body body)
+  ;; JT: Careful when calling this, make sure STREAM, if provided, is
+  ;; a symbol that alwyas designates a non-nil stream.  See gh#287.
+  "Catches errors during evaluation of BODY and prints MSG instead."
+  `(handler-case (progn ,@body)
+     (serious-condition ()
+       ,(cond ((and stream object)
+               (let ((gstream (gensym "STREAM+")))
+                 `(let ((,gstream ,stream))
+                    (print-unreadable-object (,object ,gstream :type t
+                                                      :identity t)
+                      (write-string ,msg ,gstream)))))
+              (stream
+               `(write-string ,msg ,stream))
+              (object
+               `(with-output-to-string (s)
+                  (print-unreadable-object (,object s :type t :identity t)
+                    (write-string ,msg  s))))
+              (t msg)))))
+
+(defun eval-server-eval (self input)
+  (declare (ignore self))
+  (let ((error-output (make-array 0 :element-type 'character
+				  :fill-pointer t
+				  :adjustable t))
+	(standard-output  (make-array 0 :element-type 'character
+			     :fill-pointer t
+			     :adjustable t))
+	(form nil)
+	(values nil)
+	(result nil)
+	(read-successful-p nil)
+	(eval-successful-p nil)
+	(print-successful-p nil))
+  (with-output-to-string (*standard-output* standard-output)
+    (with-output-to-string (*error-output* error-output)
+      (handler-case (progn (setq form (read-from-string input))
+			   (setq read-successful-p t))
+	(error (e)
+	  (format *error-output*
+		  "EVAL-SERVER: ERROR READING INPUT: ~S ~:* ~A~&" e)))
+      (when read-successful-p
+	(handler-case (progn (setq values (multiple-value-list (eval form)))
+			     (setq eval-successful-p t))
+	  (error (e)
+	    (format *error-output*
+		    "EVAL-SERVER: ERROR EVALING FORM: ~S ~:* ~A~&" e))))
+      (when eval-successful-p
+	(handler-case
+	    (let ((*print-readably* nil))
+	      (setq result
+		    (cond ((null values) "; No value")
+			  (t
+			   (with-output-to-string (s)
+			     (let ((strings
+				    (loop for v in values
+					  collect
+					  (without-printing-errors
+					      (:object v :stream s)
+					    (prin1-to-string v)))))
+			       (if (some #'(lambda (s) (find #\Newline s))
+					 strings)
+				   (format s "~{~a~^~%~}" strings)
+				   (format s "~{~a~^, ~}" strings)))))))
+	      (setq print-successful-p t))
+	  (error (e)
+	    (format *error-output*
+		    "EVAL-SERVER: PRINTING RESULT: ~S ~:* ~A~&" e))))
+      (values print-successful-p
+	      (or result "")
+	      standard-output
+	      error-output
+	      #+nil
+	      (get-output-stream-string *standard-output*)
+	      #+nil
+	      (get-output-stream-string *error-output*))))))
+
+
+#||
+(defclass eval-server (dbus-service)
+  ()
+  (:default-initargs
+   :object-path "/code/girlib/EvalServer"
+   :bus-name "code.girlib.EvalServer"
+   :interface-name "code.girlib.EvalServer"
+   :node-info $eval-server-introspection-xml
+   :method-handlers
+   `(("Eval" . eval-server-eval))))
+
+(setq $eval-server (make-instance 'eval-server))
+(bus-name (slot-value $eval-server 'bus-name) :own)
+(register $eval-server)
+gdbus call --session --dest "code.girlib.EvalServer" --object-path "/code/girlib/EvalServer" --method "code.girlib.EvalServer.Eval" '(+ 2 3)'
+(unregister $eval-server)
+(bus-name (slot-value $eval-server 'bus-name) :unown)
+||#
