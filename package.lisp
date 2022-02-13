@@ -59,9 +59,9 @@
 (in-package "GIR-LIB")
 
 (progn
-(defvar *gio*  (gir:require-namespace "Gio"))
-(defvar *glib* (gir:require-namespace "GLib"))
-(defvar *gobject* (gir:require-namespace "GObject")))
+(defvar *gio* (load-time-value (gir:require-namespace "Gio")))
+(defvar *glib* (load-time-value (gir:require-namespace "GLib")))
+(defvar *gobject* (load-time-value (gir:require-namespace "GObject"))))
 
 #||
 #-no-gtk
@@ -101,7 +101,8 @@
 #+nil
 (import '(*gio* *glib* *gobject* *gtk* *gdk* *gdk-x11*) "CL-USER")
 
-(defvar *gi-repository* (gir::ffi "GIRepository" "2.0"))
+(defvar *gi-repository*
+  (load-time-value (gir:require-namespace "GIRepository" "2.0")))
 
 (defpackage "GIR-TEST"
   (:use "CL" "GIR" "GIR-LIB")
