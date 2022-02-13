@@ -19,7 +19,7 @@
   :depends-on ("girlib")
   :components (
 	       "package"
-	       "gtk-app"
+	       (:file "gtk-app" :load-only t)
                ))
 
 #+nil

@@ -1,5 +1,12 @@
 (in-package "GTK-APP")
 
+(defvar wk-present-p #+wk t #-wk nil)
+(eval-when (load eval)
+  (assert (eq wk-present-p (load-time-value (and (find :wk *features*) t)))
+      nil "Feature Mismatch: WK was ~:[absent~;present~] at compile time but is ~:*~:[present~;absent~] at runtime."
+    wk-present-p))
+
+
 ;;; gtk-app.lisp - framework for constructing a GtkApplication.  Your
 ;;; class should inherit gtk-application-mixin.  Define an ACTIVATE
 ;;; method to set up the main-window in response to the "activate"
