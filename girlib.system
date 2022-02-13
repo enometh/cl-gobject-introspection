@@ -35,6 +35,7 @@
 	       "gdbus-server"
 	       "gstream"
 	       "glib-base"
+	       "glogger"
 	       "xlib-xprop"
 	       "inifile"
 	       "settings"
