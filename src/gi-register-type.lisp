@@ -433,12 +433,14 @@ init function and the instance init function for the subclassable"
 (find-class-struct-offset (nget gir-test::*gobject* "TypeModuleClass") "load")
 
 (defvar +type-module-class-offset-load+
+ (load-time-value
   (find-class-struct-offset (nget (require-namespace "GObject") "TypeModuleClass")
-			    "load"))
+			    "load")))
 
 (defvar +type-module-class-offset-unload+
+ (load-time-value
   (find-class-struct-offset (nget (require-namespace "GObject") "TypeModuleClass")
-			    "unload"))
+			    "unload")))
 
 ;; and now that we have the offsets we can implement the class init
 ;; callback:

@@ -130,7 +130,9 @@ given signal with the object."
     (cffi:foreign-funcall
      "g_signal_handler_find"
      :pointer (this-of object) ;instance
-     :int (nget (require-namespace "GObject") "SignalMatchType" :id) ;type
+     :int (load-time-value
+	   (nget (require-namespace "GObject")
+		 "SignalMatchType" :id))   ;type
      :int id
      :int 0					;gquark
      :pointer (cffi:null-pointer)

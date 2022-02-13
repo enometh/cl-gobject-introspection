@@ -14,7 +14,7 @@
 
 ;; ;madhu 200521 fixme avoid defining *glib* as a variable
 ;;(define-symbol-macro *glib* (require-namespace "GLib" "2.0"))
-(defvar *glib* (require-namespace "GLib" "2.0"))
+(defvar *glib* (load-time-value (require-namespace "GLib" "2.0")))
 
 (defstruct dict-entry k v)
 
