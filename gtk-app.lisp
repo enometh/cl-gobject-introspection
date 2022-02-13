@@ -312,8 +312,6 @@ If a wrong type name lisp is supplied *LISP* *WILL* *ABORT*.
 					      :ulong)))))
 		(apply #'gir:gobject-new gtype key-val-props))))))
 
-(start-gtk-thread)
-
 ;;;
 ;;;
 ;;;
