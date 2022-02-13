@@ -14,8 +14,8 @@
   (thread nil)
   (queue (make-array 0 :adjustable t :fill-pointer t)) ;task-queue
   (source-id nil)     ;glib main-loop source to process the task-queue
-  (lock (#+mkcl bordeaux-threads:make-recursive-lock
-	 #-mkcl
+  (lock (#+(or mkcl ecl) bordeaux-threads:make-recursive-lock
+	 #-(or mkcl ecl)
 	 bordeaux-threads:make-lock
 	 "gtk-task-queue-lock"))
   (free-list nil))		  ; indices of removed thunks in queue
