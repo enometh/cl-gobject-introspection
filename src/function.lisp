@@ -982,6 +982,8 @@
   (out-args :pointer) (n-out-args :int)
   (ret :pointer) (g-error :pointer))
 
+(defvar *trace-function-info-invoke* nil)
+
 (defun build-function (info &key return-interface &aux
 						    (methodp (method? (function-info-get-flags info))))
   (multiple-value-bind (args-data in-count out-count in-array-length-count)
@@ -1009,6 +1011,8 @@
 	       (mapc #'in-arg-setup in-args args-in)
 	       (unwind-protect
 		    (progn
+		      (when *trace-function-info-invoke*
+			(format t "function-info-invoke: ~a~&" name))
 		      (with-gerror g-error
 			(g-function-info-invoke info
 						giargs-in in-count
