@@ -402,6 +402,24 @@ If a wrong type name lisp is supplied *LISP* *WILL* *ABORT*.
 	  (gir:invoke (scope "add_callback_symbol")
 		      callback-name cffi-callback-address)))
 
+
+#+nil
+(gir:get-method-desc (gir:nget gir-test::*gtk* "WidgetClass") "bind_template_callback_full")
+
+(defun update-widget-class-scope (widget-class callback-symbol-alist)
+  (loop for (callback-name callback-symbol) in callback-symbol-alist
+	  for cffi-callback-address =
+	  (if (cffi:pointerp callback-symbol)
+	      callback-symbol
+	      (let (ret)
+		(assert (symbolp callback-symbol))
+		(setq ret (cffi:get-callback callback-symbol))
+		(assert ret)
+		ret))
+	  do
+	  (gir:invoke (widget-class "bind_template_callback_full")
+		      callback-name cffi-callback-address)))
+
 ;; builder-ui-path and builder-ui-string can be lists of paths and
 ;; strings the ACTIVATE method will add all of them.
 
