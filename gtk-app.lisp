@@ -187,8 +187,10 @@ state. See RUN-SAFE instead."
 	  (when errorp
 	    (format t "error running ~S:~&" self))
 	  (let ((id (gir:invoke (app "get_application_id"))))
-	    (format t "removing id=~S~&" id)
-	    (remhash id *gtk-applications*)))))))
+	    (cond (id
+		   (format t "removing id=~S~&" id)
+		   (remhash id *gtk-applications*))
+		  (t (remhash app *gtk-applications*)))))))))
 
 ;; calling g_application_quit without destroying the window leaves the
 ;; window open and it leaves a dbus object for the open window. Our
@@ -213,15 +215,18 @@ state. See RUN-SAFE instead."
 (defun gtk-application-activate-callback (app)
   (format t "my gtk application activate callback~&")
   (let ((self (let ((id (gir:invoke (app "get_application_id"))))
-		(gethash id *gtk-applications*))))
+		(if id
+		    (gethash id *gtk-applications*)
+		    (gethash app *gtk-applications*)))))
     (activate self)))
 
 (defmethod initialize-instance :after ((self gtk-application-mixin) &key)
   (with-slots (application-id app activate-id) self
-    (check-type application-id string  "must supply application-id")
-    (with-simple-restart (replace "Replace it in the table")
-      (assert (not (gethash application-id *gtk-applications*))))
-    (setf (gethash application-id *gtk-applications*) self)
+    (when application-id
+      (check-type application-id string  "must supply application-id")
+      (with-simple-restart (replace "Replace it in the table")
+	(assert (not (gethash application-id *gtk-applications*))))
+      (setf (gethash application-id *gtk-applications*) self))
     (setq app
 	  (gir:invoke ( *gtk* "Application" "new" )
 		      application-id
@@ -231,6 +236,8 @@ state. See RUN-SAFE instead."
 		       (gir:nget *gio* "ApplicationFlags" :allow-replacement)
 		       (gir:nget *gio* "ApplicationFlags" :non-unique))
 		      ))
+    (unless application-id
+      (setf (gethash app *gtk-applications*) self))
     (setq activate-id (gir:connect app "activate"
 				   'gtk-application-activate-callback))))
 
@@ -243,7 +250,9 @@ wedged."
     (let ((id (gir:invoke (app "get_application_id"))))
       (gir:invoke (app "quit"))
       (gir::g-object-unref (gir::this-of app))
-      (remhash id *gtk-applications*))))
+      (cond (id
+	     (remhash id *gtk-applications*))
+	    (t (remhash app *gtk-applications*))))))
 
 (defmethod register ((self gtk-application-mixin))
   (with-slots (app) self
