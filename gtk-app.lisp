@@ -339,7 +339,7 @@ If a wrong type name lisp is supplied *LISP* *WILL* *ABORT*.
 (defvar $app-1 nil)
 
 #+nil
-(with-gtk-thread (setq $app-1 (make-instance 'example-1)))
+(with-gtk-thread (setq $app-1 (make-instance 'example-1 :application-id "org.gtk.Example")))
 
 #+nil
 (run-safe $app-1)

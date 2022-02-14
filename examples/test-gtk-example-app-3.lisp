@@ -26,6 +26,7 @@
 
 (defun close-request-cb (window)
   (format t "close-request-cb ~S~&" window)
+  #+nil
   (invoke (window "destroy")))
 
 #+nil
@@ -47,6 +48,7 @@
     (gir:connect quit-button "clicked"
 		 (lambda (button)
 		   (declare (ignorable button))
+		   (format t "clicked-callback~&")
 		   (quit self)))))
 
 #+nil
@@ -70,3 +72,5 @@
 #+nil
 (gtk-app:quit $app-3)
 
+#+nil
+(gtk-app::really-quit $app-3)

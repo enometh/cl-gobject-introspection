@@ -30,7 +30,9 @@
 
 (defun example-5-close-request-cb (window)
   (format t "close-request-cb ~S~&" window)
-  (gir:invoke (window "destroy")))
+  #+nil
+  (gir:invoke (window "destroy"))
+  nil)
 
 #+nil
 (gir:generate-cffi-defcallback (gir:info-of (gir:get-signal-desc (gir:nget gir-test::*gtk* "Window") "destroy")) 'example-5-close-request-cb)
