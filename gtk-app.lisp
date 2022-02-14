@@ -388,7 +388,7 @@ If a wrong type name lisp is supplied *LISP* *WILL* *ABORT*.
 ;; '("exmaple_4_clicked_cb" example-4-clicked-cb-callback)
 
 (defun update-builder-scope (scope callback-symbol-alist)
-  "scope is a GtkBuilderScope"
+  "For Gtk4 scope is a GtkBuilderCScope. For Gtk3 scope is the GtkBuilder object "
   (loop for (callback-name callback-symbol) in callback-symbol-alist
 	  for cffi-callback-address =
 	  (if (cffi:pointerp callback-symbol)
@@ -420,8 +420,10 @@ If a wrong type name lisp is supplied *LISP* *WILL* *ABORT*.
       self
     (let ((builder (gir:invoke (*gtk* "Builder" "new"))))
       (when callback-symbol-alist
-	(update-builder-scope (gir:property builder "scope")
-			      callback-symbol-alist))
+	(update-builder-scope
+	 #-wk (gir:property builder "scope")
+	 #+wk builder
+	 callback-symbol-alist))
       (when builder-ui-path
 	(dolist (path (if (consp builder-ui-path)
 			  builder-ui-path
