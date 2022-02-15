@@ -14,7 +14,12 @@
     (t "libgirepository-1.0")))
 
 (cffi:use-foreign-library gobject)
-(cffi:use-foreign-library girepository)
+
+; cffi:use-foreign-library unloads the library first. this is fatal in
+;lisps where dll unload actually works. only call it if
+;libgirepository is not already loaded.
+(unless (cffi:foreign-symbol-pointer "g_base_info_new")
+  (cffi:use-foreign-library girepository))
 
 (cffi:defcfun (%g-type-init "g_type_init") :void)
 
