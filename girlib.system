@@ -39,6 +39,7 @@
 	       "xlib-xprop"
 	       "inifile"
 	       "settings"
+	       "options"
                ))
 
 #+nil
