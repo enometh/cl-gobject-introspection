@@ -66,3 +66,12 @@
 (funcall (compiler-macro-function 'nget)
 	 '(nget gir-lib:*gtk* "WindowType" :toplevel)
          nil)
+
+(defun %define-cffi-enum (cffi-enum-name-and-options namespace enum-name)
+  `(cffi:defcenum ,cffi-enum-name-and-options
+     ,@(loop for (c-name . number) in (gir::values-of (gir::nget-desc namespace enum-name))
+	     collect (list (intern (substitute #\- #\_ (string-upcase c-name)) :keyword)
+			   number))))
+
+#+nil
+(%define-cffi-enum 'option-arg gir-test::*glib* "OptionArg")
