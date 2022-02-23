@@ -51,7 +51,7 @@
 
 (cffi:defcfun ("getpid" getpid) :int)
 
-(defvar $tv (gir::allocate-struct (gir:nget *glib* "TimeVal")))
+(defvar $tv (load-time-value (gir::allocate-struct (gir:nget *glib* "TimeVal"))))
 
 (defun format-log (stream format-string &rest format-args)
   (gir:invoke (*glib* "get_current_time") $tv)
@@ -129,6 +129,9 @@
 		(go loop)))))
   (format t "Impossible! Leaving eternal damnation~&"))
 
+#+nil
+(gir:invoke ((gir:invoke (*glib* "main_context_default")) "iteration") nil)
+
 
 (defun run-one-main-context-iteration ( &optional block)
   (prog ((default-context (gir:invoke (*glib* "main_context_default"))))
@@ -156,6 +159,11 @@
 		       (bordeaux-threads:make-thread
 			#'run-gtk-main
 			:name "GTK-Main-Thread")))))))
+
+#+nil
+(with-slots (lock thread) *gtk-main*
+  (bordeaux-threads:with-lock-held (lock)
+  (bordeaux-threads:destroy-thread thread)))
 
 ;; for single-threaded lisps: (and clisp (not mt))
 (defvar *gtk-main-single-threaded-kill-switch* nil)
@@ -256,3 +264,6 @@
 
 #+nil
 (setq *gtk-main-kill-switch* nil)
+
+#+nil
+(gtk-main-lock *gtk-main*)
