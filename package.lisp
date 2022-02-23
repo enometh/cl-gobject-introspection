@@ -12,6 +12,7 @@
 
 (defpackage "GIR-LIB"
   (:use "CL")
+  (:import-from "ENSURE-CTF" "ENSURE-CTF")
   (:import-from "GIR" "THIS-OF")
   #+mkcl
   (:shadowing-import-from "TRIVIAL-GRAY-STREAMS"

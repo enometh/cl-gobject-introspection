@@ -21,6 +21,7 @@
   :source-extension "lisp"
   :depends-on ("cl-gir" "bordeaux-threads" "trivial-gray-streams")
   :components (
+	       "ensure-ctf"
 	       "package"
 	       "gtk-thread"
 	       "ffi-callback-manager"
