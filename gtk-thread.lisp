@@ -1,5 +1,7 @@
 (in-package "GIR-LIB")
 
+(ensure-ctf :no-gtk :wk)
+
 ;; GTK+, however, is not thread safe. You should only use GTK+ and GDK
 ;; from the thread gtk_init() and gtk_main() were called on. This is
 ;; usually referred to as the “main thread”.
