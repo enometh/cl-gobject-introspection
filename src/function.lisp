@@ -755,7 +755,8 @@
 
 (defvar *debug* nil)
 (defun format-debug (stream fmt &rest args)
-  (and *debug* (apply #'format stream fmt args)))
+  (let ((*print-pretty* t))
+    (and *debug* (apply #'format stream fmt args))))
 
 (defun make-args-data (info &optional methodp)
   (format-debug t "MAKE-ARGS_DATA(~S :methodp ~S)~&" (info-get-name info) methodp)
@@ -772,7 +773,7 @@
       (let* ((arg (g-callable-info-get-arg info i))
              (direction (arg-info-get-direction arg))
 	     (arg-data (make-instance 'arg-data :arg-info arg)))
-	(format-debug t "~&: get-arg: ~S. dir=~S. data=~S~&" arg direction
+	(format-debug t "~&: get-arg: ~S. dir=~S.~&  data=~S~&" arg direction
 		      (list :name (name-of arg-data)
 			    :contained-type
 			    (cons
@@ -1029,7 +1030,7 @@
     (multiple-value-bind (args-data in-count out-count in-array-length-count)
 	(make-args-data info)
       (declare (ignorable in-count out-count in-array-length-count))
-      (format-debug t "shared-initialize(callable-desc): make-args-info(~S): ~S"
+      (format-debug t "shared-initialize(callable-desc): make-args-info(~S):~&  ~S~&"
 		    (info-get-name info)
 		    (list :args-data args-data :in-count in-count
 			  :out-count out-count
