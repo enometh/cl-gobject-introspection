@@ -119,12 +119,12 @@
 (defmethod field ((object object-instance) name)
   (let* ((object-class (gir-class-of object))
 	 (field-info (object-class-find-field object-class name)))
-    (gir.field:get (this-of object) field-info)))
+    (gir.field:get (this-of object) field-info object-class)))
 
 (defmethod set-field! ((object object-instance) name value)
   (let* ((object-class (gir-class-of object))
 	 (field-info (object-class-find-field object-class name)))
-    (gir.field:set (this-of object) field-info value)))
+    (gir.field:set (this-of object) field-info value object-class)))
 
 (defun property (object name)
   (get-properties (this-of object) (list name)))
