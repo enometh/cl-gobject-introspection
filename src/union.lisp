@@ -91,12 +91,12 @@
 (defmethod field ((union union-instance) name)
   (let* ((union-class (union-class-of union))
 	 (field-info (union-class-find-field union-class name)))
-    (gir.field:get (this-of union) field-info)))
+    (gir.field:get (this-of union) field-info union-class)))
 
 (defmethod set-field! ((union union-instance) name value)
   (let* ((union-class (union-class-of union))
 	 (field-info (union-class-find-field union-class name)))
-    (gir.field:set (this-of union) field-info value))
+    (gir.field:set (this-of union) field-info value union-class))
   value)
 
 ;; defined in struct.lisp
