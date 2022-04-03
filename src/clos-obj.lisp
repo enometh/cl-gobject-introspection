@@ -62,10 +62,13 @@
 		 interface-base-class))
   (eval-1 (%build-validate-superclass-forms class)))
 
-;; ;madhu 210718 this only works for one namespace. if there are more
-;; than one namespaces then *package* should be bound to a package for
-;; the appropriate namespce
 (defvar *class-to-object-class-hash* (make-hash-table))
+
+(defun %string-name (info)
+  (let* ((thing-name (info-get-name info))
+	 (namespace-name (info-get-namespace info))
+	 (string-name (concatenate 'string namespace-name "." thing-name)))
+    string-name))
 
 ;; return a symbol denoting the class-name. recursively define classes
 ;; for thing. thing is an object-class or a struct-class or an
@@ -75,7 +78,7 @@
 (defun %ensure-class (thing &key force-p)
   (check-type thing (or interface-desc object-class struct-class))
   (let* ((info (info-of thing))
-	 (string-name (info-get-name info))
+	 (string-name (%string-name info))
 	 (name (intern-1 string-name *package*))
 	 (ret (find-class name nil)))
     (when (and ret force-p)
@@ -129,7 +132,7 @@
 
 (defun %build-method-form (thing callable-desc &optional constructor-p)
   (let* ((info (slot-value callable-desc 'info))
-	 (string-name (info-get-name info))
+	 (string-name (%string-name info))
 	 (name (intern-1 string-name *package*))
 	 (args (%build-method-arguments callable-desc))
 	 (self  (%ensure-class thing))
@@ -166,6 +169,13 @@
 (mapcar 'shadow '(close atom map remove))
 (import 'gir-test::*gtk*)
 (%ensure-class (nget gir-test::*gtk* "Window") :force-p t)
+*class-to-object-class-hash*
+(mapcar  (lambda (callable-desc)
+	   (%build-method-form (nget *gtk* "Window") callable-desc))
+	 (list-methods-desc (nget *gtk* "Window")))
+(mapcar  (lambda (callable-desc)
+	   (%build-method-form (nget *gtk* "Window") callable-desc t))
+	 (list-constructors-desc (nget *gtk* "Window")))
 (%define-methods (nget *gtk* "Window"))
 (setq $win (new 'window (nget *gtk* "WindowType" :toplevel)))
 (gir-lib:with-gtk-thread (show-all $win))
