@@ -45,7 +45,7 @@
 
    ;; dbus-server
    "DBUS-SERVICE"
-   "EMIT-SIGNAL"
+   "EMIT-SIGNAL-DBUS"
    "REGISTER"
    "UNREGISTER"
    ))

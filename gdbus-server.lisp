@@ -139,7 +139,7 @@
 	  (t (format t "~S~&" c)))
 	nil))))
 
-(defun emit-signal (dbus-obj signal-name)
+(defun emit-signal-dbus (dbus-obj signal-name)
   (let ((lisp-function (lookup-lisp-function dbus-obj 'notifiers signal-name)))
     (assert lisp-function nil "Couldn't find notifier for signal.")
     (assert (fdefinition lisp-function) nil "Notifier for signal not fbound.")
