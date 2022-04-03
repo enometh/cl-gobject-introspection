@@ -88,12 +88,12 @@
 (defmethod field ((struct struct-instance) name)
   (let* ((struct-class (struct-class-of struct))
 	 (field-info (struct-class-find-field struct-class name)))
-    (gir.field:get (this-of struct) field-info)))
+    (gir.field:get (this-of struct) field-info struct-class)))
 
 (defmethod set-field! ((struct struct-instance) name value)
   (let* ((struct-class (struct-class-of struct))
 	 (field-info (struct-class-find-field struct-class name)))
-    (gir.field:set (this-of struct) field-info value))
+    (gir.field:set (this-of struct) field-info value struct-class))
   value)
 
 (defun (setf field) (value struct name)
