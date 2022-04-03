@@ -32,6 +32,7 @@
   (gobject (ash 21 2) pointer))
 
 (cffi:defcfun g-value-init :void (value :pointer) (gtype :ulong))
+(cffi:defcfun g-value-unset :void (g-value :pointer))
 
 (cffi:defcfun g-value-get-boolean :boolean (g-value :pointer))
 (cffi:defcfun g-value-get-char :char (g-value :pointer))
