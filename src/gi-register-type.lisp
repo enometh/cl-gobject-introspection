@@ -307,6 +307,7 @@ subclassable"
 	 (gir-name (%gobject-subclassable-get-name obj :class-string))
 	 (vfunc-init-forms (with-slots (vfuncs) obj
 			     (when vfuncs
+			       ;;madhu 220410 consider why one wouldn't use %generate-class-init-override-1 here
 			       (mapcar (lambda (x) (%generate-class-init-override obj x))
 				       vfuncs))))
 	 (lisp-function-name
@@ -578,4 +579,19 @@ which calls a lisp function."
 			 (find-vfunc-offset-recursive
 			  (gtype-of ,g-object-class)
 			  ,vfunc-name))
+	   (cffi:callback ,callback-name))))
+
+(defun %generate-class-init-override-1 (obj vfunc-name)
+  "Like %generate-class-init-override-1 but Evaluate offsets at read
+time."
+  (let* ((klass (%gobject-subclassable-get-name obj :class-arg))
+	 (g-object-class
+	  (with-slots  ((object-class gir-parent)) obj
+	    `(nget (require-namespace ,(info-get-namespace (info-of object-class)))
+		   ,(info-get-name (info-of object-class)))))
+	 (callback-name (%gobject-subclassable-get-name obj :vfunc (concatenate 'string  vfunc-name "-callback")))
+	 (g-type (eval `(gtype-of ,g-object-class))))
+    `(setf (cffi:mem-ref ,klass :pointer
+			 ,(find-vfunc-offset-recursive g-type
+						       vfunc-name))
 	   (cffi:callback ,callback-name))))
