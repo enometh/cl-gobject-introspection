@@ -3,7 +3,7 @@
 (defun load-typelib (file-name)
   (iter (for dir-path in (gir:repository-get-search-path))
 	(let* ((file-path (format nil "~a/~a" dir-path file-name))
-	       (content (read-file file-path)))
+	       (content (if (probe-file file-path) (read-file file-path))))
 	  (when content
 	    (return content)))))
 
