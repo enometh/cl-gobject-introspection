@@ -28,25 +28,6 @@
 </interface>
 "))
 
-(defvar +example-5-gtk3-ui+ "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
-<interface>
-  <template class=\"Example5AppWindow\" parent=\"GtkApplicationWindow\">
-    <property name=\"title\" translatable=\"yes\">Example Application</property>
-    <property name=\"default-width\">600</property>
-    <property name=\"default-height\">400</property>
-
-    <child>
-      <object class=\"GtkBox\" id=\"content_box\">
-        <property name=\"orientation\">vertical</property>
-        <child>
-          <object class=\"GtkStack\" id=\"stack\"/>
-        </child>
-      </object>
-    </child>
-  </template>
-</interface>
-")
-
 (defun example-5-close-request-cb (window)
   (format t "close-request-cb ~S~&" window)
   (gir:invoke (window "destroy")))
@@ -95,6 +76,7 @@
 
 (defun EXAMPLE5-APP-WINDOW-CLASS-INIT-LISP (klass)
   (let ((gbytes (gir:invoke ((gir:invoke (*glib* "String" "new")
+
 					 +example-5-ui+)
 			     "free_to_bytes")))
 	(callback-symbol-alist
