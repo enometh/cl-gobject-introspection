@@ -10,7 +10,13 @@
 
 (defvar *gtk-app-source-dir*
   (merge-pathnames "gtk-app/" (translate-logical-pathname "PROJECTS:")))
-(defvar *gtk-app-binary-dir* (binary-directory *gtk-app-source-dir*))
+(defvar *gtk-app-binary-dir* (binary-directory *gtk-app-source-dir*
+					       #+wk "gtk-3"))
+
+#+nil
+(defparameter *gtk-app-binary-dir* (let ((*binary-directory-fasl-root* "/dev/shm/fasl/"))
+				    (binary-directory *gtk-app-source-dir*
+						      #+wk "gtk-3")))
 
 (mk:defsystem :gtk-app
   :source-pathname *gtk-app-source-dir*
