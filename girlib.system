@@ -10,7 +10,9 @@
 
 (defvar *girlib-source-dir*
   (merge-pathnames "girlib/" (translate-logical-pathname "PROJECTS:")))
-(defvar *girlib-binary-dir* (binary-directory *girlib-source-dir*))
+(defparameter *girlib-binary-dir* (binary-directory *girlib-source-dir*
+					      #+wk "gtk-3")
+  )
 
 #+(and :lispworks :gtk)
 (pushnew :no-gtk *features*)
