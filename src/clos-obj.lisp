@@ -204,6 +204,8 @@
 				       :pointer)
 		 object-class-ptr)))
 	 ret)
+    (format *standard-output* "CTVM: G-OBJECT-NEW: OBJECT-CLASS-PTR=~S~&" object-class-ptr)
+    (finish-output *standard-output*)
     (assert (not (cffi:null-pointer-p object-class-ptr)))
     (loop for i from 0
 	  for (prop-name lisp-val) on key-val-pairs by #'cddr
@@ -214,22 +216,36 @@
 			    '(:struct g-param-spec) 'spec-type)
 	  for gvalue-ptr = (make-gvalue prop-gtype lisp-val)
 	  do
+	  (format *standard-output* "CTVM: G-OBJECT-NEW: SETTING PROPERTY NUMBER ~D~&" i)
+	  (finish-output *standard-output*)
+
 	  (setf (cffi:mem-aref names :string i)
 		prop-name)
 	  (setf (cffi:mem-aref values '(:struct g-value-struct) i)
 		(cffi:mem-ref		;ugh
 		 gvalue-ptr '(:struct g-value-struct)))
 	  (cffi:foreign-free gvalue-ptr)
-	  finally (setq ret (cffi:foreign-funcall
-			     "g_object_new_with_properties"
-			     :ulong object-gtype
-			     :uint n-properties
-			     :pointer names
-			     :pointer values
-			     :pointer)))
+	  finally
+	  (format *standard-output* "CTVM: G-OBJECT-NEW: CALLING NEW_WITH_PROPERTIES ~D ~S~&" n-properties (list names values))
+	  (finish-output *standard-output*)
+	  (setq ret (cffi:foreign-funcall
+			"g_object_new_with_properties"
+		      :ulong object-gtype
+		      :uint n-properties
+		      :pointer names
+		      :pointer values
+		      :pointer)))
+    (format *standard-output* "CTVM: G-OBJECT-NEW: GOT ~S~&" ret)
+    (finish-output *standard-output*)
     (cffi:foreign-free names)
     (cffi:foreign-free values)
-    (gobject object-gtype ret)))
+    (format *standard-output* "CTVM: G-OBJECT-NEW: CALLING GOBJECT ~S~&" ret)
+    (finish-output *standard-output*)
+    (let ((objptr (gobject object-gtype ret)))
+      (format *standard-output* "CTVM: G-OBJECT-NEW: GOBJECT RETURNED ~S~&"
+	      objptr)
+      (finish-output *standard-output*)
+      objptr)))
 
 #||
 (list-property-names (nget gir-test::*gio* "Application"))
