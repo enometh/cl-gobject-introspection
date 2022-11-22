@@ -89,14 +89,14 @@
 (defun g-slist-next (list)
   (if (cffi:null-pointer-p list)
       (cffi:null-pointer)
-      (cffi:foreign-slot-value list 'g-slist 'next)))
+      (cffi:foreign-slot-value list '(:struct g-slist) 'next)))
 
 (defun g-slist-to-list (pointer &key (free t))
   (prog1
       (iter (for c initially pointer then (g-slist-next c))
             (until (cffi:null-pointer-p c))
 	    (collect (cffi:convert-from-foreign 
-                      (cffi:foreign-slot-value c 'g-slist 'data) :string)))
+                      (cffi:foreign-slot-value c '(:struct g-slist) 'data) :string)))
     (when free
       (g-slist-free pointer))))
 
