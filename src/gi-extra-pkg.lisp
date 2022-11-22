@@ -6,6 +6,7 @@
 
 	  g-type-name
 	  g-type-parent
+	  g-type-is-a
 
 	  ;; gi-extra.lisp
 	  gtype-of  ;; return integer gtype of object-instance, object-info, object-class

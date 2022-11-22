@@ -35,6 +35,10 @@
 (cffi:defcfun g-type-parent :ulong
   (gtype :ulong))
 
+(cffi:defcfun g-type-is-a :boolean
+  (gtype1 :ulong)
+  (gtype2 :ulong))
+
 ;;
 ;; memory management
 ;;
