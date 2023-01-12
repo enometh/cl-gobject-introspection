@@ -69,6 +69,11 @@
     #+(and clisp (not mt))
     (gir-lib::clisp-single-thread-run-loop container-view)))
 
+(defmethod interface-dispose ((intf-1 interface))
+  (with-slots (container-view) intf-1
+    (when container-view
+      (gir:invoke (container-view "run_dispose")))))
+
 (defun display (intf-1)
   (with-gtk-thread (interface-display intf-1)))
 
@@ -248,7 +253,9 @@ the main loop of run if it is running and the state machine is already
 wedged."
   (with-slots (app) self
     (let ((id (gir:invoke (app "get_application_id"))))
+      (interface-dispose self)
       (gir:invoke (app "quit"))
+      #+nil
       (gir::g-object-unref (gir::this-of app))
       (cond (id
 	     (remhash id *gtk-applications*))
@@ -258,6 +265,12 @@ wedged."
   (with-slots (app) self
     (or (gir:invoke (app "get_is_registered"))
 	(gir:invoke (app "register") nil))))
+
+(defmethod interface-dispose :before ((self gtk-application-mixin))
+  (with-slots (app activate-id) self
+    (when activate-id
+      (gir:disconnect app activate-id)
+      (setq activate-id nil))))
 
 (defmethod run-safe ((self gtk-application-mixin))
   "Invoke REGISTER and ACTIVATE"
