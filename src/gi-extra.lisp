@@ -24,6 +24,7 @@
 				      :pointer))
 	   (ret (loop for i below (cffi:mem-ref n :int)
 		      collect (cffi:mem-aref ptr :ulong i))))
+      #-(or ecl mkcl)
       (cffi:foreign-free ptr)
       ret)))
 
