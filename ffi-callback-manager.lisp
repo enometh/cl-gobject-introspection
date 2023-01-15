@@ -83,3 +83,76 @@ in the CALLBACK-MANAGER."
 
 #+nil
 (define-foreach-callback-mapper "g_slist_foreach" "SLIST")
+
+
+;; provide an interface similar to 1) cl-gobject-introspection-wrapper
+;; glib and 2) cl-cffi-gtk's stable pointer
+
+(cffi:defcallback funcall-object-callback :bool ((user-data :pointer))
+  (with-simple-restart (cont "Skip Error during Execution")
+    (funcall (find-callback user-data))))
+
+(cffi:defcallback free-funcall-object-callback :void ((user-data :pointer))
+  (unregister-callback user-data))
+
+
+(defun idle-add (function)
+  (let ((loc (register-callback function)))
+    (gir:invoke (*glib* "idle_add") 200
+		(cffi:callback funcall-object-callback)
+		loc
+		(cffi:callback free-funcall-object-callback))))
+
+#+nil
+(idle-add (lambda () (warn "BOO")))
+
+
+;;; handle patterns that use GAsynReadyCallback by using the user-data
+;;; field to indicate a registered thunk. The thunk will be called
+;;; with 2 parameters, the source object and the GAsyncResult (no
+;;; third user-data parameter).
+
+(cffi:defcallback funcall-object-async-ready-callback :void
+    ((SOURCE-OBJECT :POINTER) (RES :POINTER) (USER-DATA :POINTER))
+  "ARGS:  SOURCE-OBJECT Object. RES AsyncResult."
+  (let* ((thunk (find-callback user-data))
+	 (source (UNLESS (CFFI-SYS:NULL-POINTER-P SOURCE-OBJECT)
+		   (GIR::GOBJECT (GIR:GTYPE SOURCE-OBJECT)
+				 SOURCE-OBJECT)))
+	 (async-result (UNLESS (CFFI-SYS:NULL-POINTER-P RES)
+			 (GIR::GOBJECT (GIR:GTYPE RES)
+				       RES))))
+    (with-simple-restart (skip "Skip Error")
+      (assert (functionp thunk))
+      (funcall thunk source async-result))))
+
+;; unused
+#+nil
+(cffi:defcallback free-funcall-object-async-ready-callback :void
+    ((user-data :pointer))
+  (unregister-callback user-data))
+
+
+
+;;; example
+#+nil
+(defun get-file-contents (path)
+  (let* ((file (gir:invoke (*gio* "File" "new_for_path") path))
+	 (contents)
+	 (main-loop (gir:invoke (*glib* "MainLoop" "new") nil nil)))
+    (flet ((finish (source async-result)
+	     (multiple-value-bind (ret contents-1 etag-out)
+		 (gir:invoke (source "load_contents_finish") async-result)
+	       (declare (ignorable ret etag-out))
+	       (setq contents contents-1)
+	       (gir:invoke (main-loop "quit")))))
+      (with-registered-callback (loc) #'finish
+	(gir:invoke (file "load_contents_async")
+	  nil
+	  (cffi:callback funcall-object-async-ready-callback)
+	  loc)
+	(gir:invoke (main-loop "run"))
+	contents))))
+
+#+nil
+(get-file-contents "/etc/passwd")
