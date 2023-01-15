@@ -109,10 +109,12 @@
 ;;(defun g-value-get-interface (g-value) (g-value-get-object g-value))
 ;;(defun g-value-set-interface (g-value val) (g-value-set-object g-value val))
 
-(defun make-gvalue (gtype)
+(defun make-gvalue (gtype &optional (value nil value-p))
   (let ((ptr (cffi:foreign-alloc '(:struct g-value-struct))))
     (setf (cffi:foreign-slot-value ptr '(:struct g-value-struct) 'g-type) 0)
     (g-value-init ptr gtype)
+    (when value-p
+      (gvalue-set ptr value))
     ptr))
 
 (defun gvalue-free (gvalue)
