@@ -9,7 +9,7 @@
 
 (defvar *callback-manager* (%make-callback-manager))
 
-;; REGISTER-CALLBACK Allocate a tag which and return the CFFI:POINTER
+;; REGISTER-CALLBACK Allocate a tag and return the CFFI:POINTER
 ;; of its location. This tag identifies the FUNCTION.  The location
 ;; pointer can be used to lookup the function via FIND-CALLBACK.
 ;; FIND-CALLBACK is intended to be used within a CFFI:DEFCALLBACK with
@@ -18,6 +18,9 @@
 ;; form.
 
 (defun register-callback (function)
+  "Registers a lisp object with the CALLBACK-MANAGER. Returns a foreign
+pointer which is the address of an integer that identifies the object
+in the CALLBACK-MANAGER."
   (with-slots (queue free-list lock) *callback-manager*
     (bordeaux-threads:with-lock-held (lock)
       (let* ((index (pop free-list)))
@@ -36,7 +39,9 @@
     (cffi:foreign-free loc)))
 
 (defun find-callback (loc)
+  "Returns the lisp object registered with REGISTER-CALLBACK"
   (with-slots (lock queue free-list) *callback-manager*
+    (declare (ignorable free-list))
     (let ((index (cffi:mem-ref loc :int)))
       (bordeaux-threads:with-lock-held (lock)
 	(elt queue index)))))
