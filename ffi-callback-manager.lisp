@@ -1,5 +1,7 @@
 (in-package "GIR-LIB")
 
+(declaim (optimize (speed 0) (safety 1) (debug 3)))
+
 (defstruct (callback-manager (:constructor %make-callback-manager))
   (lock (bordeaux-threads:make-lock "callback-manager-lock"))
   (queue (make-array 0 :adjustable t :fill-pointer t))
@@ -7,7 +9,7 @@
 
 (defvar *callback-manager* (%make-callback-manager))
 
-;; REGISTER-CALLBACK Allocate a tag and return the CFFI:POINTER
+;; REGISTER-CALLBACK Allocate a tag which and return the CFFI:POINTER
 ;; of its location. This tag identifies the FUNCTION.  The location
 ;; pointer can be used to lookup the function via FIND-CALLBACK.
 ;; FIND-CALLBACK is intended to be used within a CFFI:DEFCALLBACK with
