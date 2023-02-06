@@ -45,6 +45,7 @@
 	       "options"
 	       "actions"
 	       "signals"
+	       "unix-signals"
                ))
 
 #+nil
