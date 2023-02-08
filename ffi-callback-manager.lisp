@@ -106,6 +106,21 @@ in the CALLBACK-MANAGER."
 #+nil
 (idle-add (lambda () (warn "BOO")))
 
+(defmacro block-idle-add (&body forms)
+  `(let ((.main-loop. (gir:invoke (*glib* "MainLoop" "new") nil nil))
+	 (.result.))
+     (idle-add (lambda ()
+		 (setq .result. (multiple-value-list (progn ,@forms)))
+		 (gir:invoke (.main-loop. "quit"))))
+     (gir:invoke (.main-loop. "run"))
+     (values-list .result.)))
+
+#+nil
+(block-idle-add
+  (sleep 2)
+  (format t "depth=~D OK~%" (gir:invoke (*glib* "main_depth")))
+  (values 1 2 3))
+
 
 ;;; handle patterns that use GAsynReadyCallback by using the user-data
 ;;; field to indicate a registered thunk. The thunk will be called

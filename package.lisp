@@ -26,6 +26,7 @@
    ;; gtk-thread
    "GTK-ENQUEUE" "WITH-GTK-THREAD" "APPLY-IN-GTK-THREAD"
    "START-GTK-THREAD"
+   "WITH-GTK-THREAD-SYNC"
 
    ;; gdbus-connection
    "DBUS-INIT-BUS" "*CONNECTION*"

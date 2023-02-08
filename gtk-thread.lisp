@@ -267,3 +267,17 @@
 
 #+nil
 (gtk-main-lock *gtk-main*)
+
+(defmacro with-gtk-thread-sync (&body body)
+  "Try to Evaluate body in the default main-context and return the
+results."
+  `(let ((.main-loop. (gir:invoke (*glib* "MainLoop" "new") nil nil))
+	 (.result.))
+     (gtk-enqueue (lambda ()
+		    (setq .result. (multiple-value-list (progn ,@body)))
+		    (gir:invoke (.main-loop. "quit"))))
+     (gir:invoke (.main-loop. "run"))
+     (values-list .result.)))
+
+#+nil
+(with-gtk-thread-sync (sleep 2) (format t "depth=~D OK~%" (gir:invoke  (*glib* "main_depth"))) (values 1 2 3))
