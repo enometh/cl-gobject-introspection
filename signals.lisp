@@ -94,9 +94,8 @@ id is passed for the signal detail is always set to 0."
 	(gir::g-value-init
 	 (cffi:mem-aptr storage '(:struct gir::g-value-struct)  1)
 	 i-type)
-	(gir::set-value!
+	(gir::gvalue-set
 	 (cffi:mem-aptr storage '(:struct gir::g-value-struct)  1)
-	 i-type
 	 (this-of instance))
 	(loop for i from 2 repeat nparams
 	      for arg in args
@@ -105,9 +104,8 @@ id is passed for the signal detail is always set to 0."
 	      (gir::g-value-init
 	       (cffi:mem-aptr storage '(:struct gir::g-value-struct)  i)
 	       gtype)
-	      (gir::set-value!
+	      (gir::gvalue-set
 	       (cffi:mem-aptr storage '(:struct gir::g-value-struct)  i)
-	       gtype
 	       arg))
 	(cffi:foreign-funcall
 	 "g_signal_emitv"
@@ -121,10 +119,8 @@ id is passed for the signal detail is always set to 0."
 	(let ((ret
 	       (if (eql ret-type gir::+g-type-none+)
 		   nil
-		   (gir::gvalue->lisp/free
-		    (cffi:mem-aptr storage '(:struct gir::g-value-struct) 0)
-		    ret-type
-		    :no-free t))))
+		   (gir::gvalue-get
+		    (cffi:mem-aptr storage '(:struct gir::g-value-struct) 0)))))
 	  (gir::g-value-unset
 	   (cffi:mem-aptr storage '(:struct gir::g-value-struct) 1))
 	  (loop for i from 2 repeat nparams
