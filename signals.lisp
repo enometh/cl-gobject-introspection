@@ -241,19 +241,19 @@ id is passed for the signal detail is always set to 0."
 
 #+nil
 (gir:get-callable-desc *gobject* "signal_emitv")
-;; wrong g-i! return_value is both in in-args and out-args
+;; return_value is both in in-args and out-args
 
 ;; calling signal_emitv through gi fails
 #+nil
-(with-gtk-thread
 (multiple-value-setq ($ret1 $ret2)
   (gir:invoke (*gobject* "signal_emitv")
-	      (list $v1  $a1)
-	      $sig-id
-	      0 ;;detail
-	      $ret)))
+    (list $v1  $a1)
+    $sig-id
+    0 ;;detail				;
+    $ret))
 
-
+(list $ret $ret2)
+(mapcar 'gir::this-of (list $ret $ret2))
 
 (emit-signal $test-obj "test" $dummy-object)
 
