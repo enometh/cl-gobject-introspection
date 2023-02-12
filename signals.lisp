@@ -409,9 +409,9 @@ id is passed for the signal detail is always set to 0."
 	      (make-signal-data :owner-signals nil :destroy-id 0)))))
 
 (defun signal-tracker-remove-tracker (self)
-  (with-slots (owner-destroy-id owner map) self
+  (with-slots (owner-destroy-id owner) self
     (if owner-destroy-id
-	(signal-tracker-disconnect-signal owner destroy-id))
+	(signal-tracker-disconnect-signal self owner owner-destroy-id))
     (signal-manager-remove-signal-tracker owner)
     (setq owner-destroy-id nil)
     (setq owner nil)))
@@ -424,6 +424,7 @@ id is passed for the signal detail is always set to 0."
 	  (nconc (signal-data-owner-signals data) handlerids))))
 
 (defun signal-tracker-disconnect-signal (self obj id)
+  (declare (ignore self))
   (gir:disconnect obj id))
 
 (defun signal-tracker-untrack (self obj)
