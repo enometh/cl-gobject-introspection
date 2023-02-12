@@ -181,12 +181,8 @@ id is passed for the signal detail is always set to 0."
 (defvar $a1 (gir::build-struct-ptr (gir:nget *gobject* "Value")
 				   (gir::make-gvalue 80 $dummy-object)))
 
-(defvar $ret
-  (gir::build-struct-ptr (gir:nget *gobject* "Value")
-			 (gir::make-gvalue (gir::%gtype :boolean) nil)))
 
-#+nil
-(gir:get-callable-desc *gobject* "signal_emitv")
+(defvar $retp (cffi:foreign-alloc :boolean))
 
 ;; calling g_signal_emit through cffi works
 #+nil
@@ -196,8 +192,12 @@ id is passed for the signal detail is always set to 0."
  :uint $sig-id ;signal-id
  :int32 0			;gquark detail
  :pointer (this-of $dummy-object)
- :pointer (this-of $ret)
+ :pointer $retp
  :void)
+
+#+nil
+(cffi:mem-ref $retp :boolean)
+
 
 ;; calling g_signal_emitv through cffi works
 (defvar $instance-and-params
@@ -222,6 +222,10 @@ id is passed for the signal detail is always set to 0."
  (cffi:mem-aptr $instance-and-params '(:struct gir::g-value-struct)  1)
  (this-of $dummy-object)))
 
+(defvar $ret
+  (gir::build-struct-ptr (gir:nget *gobject* "Value")
+			 (gir::make-gvalue (gir::%gtype :boolean) t)))
+
 #+nil
 (cffi:foreign-funcall
  "g_signal_emitv"
@@ -231,15 +235,25 @@ id is passed for the signal detail is always set to 0."
  :pointer (this-of $ret)
  :void)
 
+(= (gir:field $ret "g_type") 20)
+(gir:invoke ($ret "get_boolean"))
+
+
+#+nil
+(gir:get-callable-desc *gobject* "signal_emitv")
+;; wrong g-i! return_value is both in in-args and out-args
 
 ;; calling signal_emitv through gi fails
 #+nil
+(with-gtk-thread
 (multiple-value-setq ($ret1 $ret2)
   (gir:invoke (*gobject* "signal_emitv")
 	      (list $v1  $a1)
 	      $sig-id
 	      0 ;;detail
-	      $ret))
+	      $ret)))
+
+
 
 (emit-signal $test-obj "test" $dummy-object)
 
