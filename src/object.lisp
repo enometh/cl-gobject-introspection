@@ -167,10 +167,13 @@
 (defun param-spec-setup-gc (object transfer)
   (let* ((this (this-of object))
          (a (cffi:pointer-address this)))
+;;    (format-debug t "param-setup-gc: registering pointer at ~A ~S~%" a object)
     (if (eq transfer :everything) ; a new ParamSpec is always floating
 	(g-param-spec-ref-sink this)
 	(g-param-spec-ref this))
-    (tg:finalize this (lambda () (g-param-spec-unref (cffi:make-pointer a)))))
+    (tg:finalize this (lambda ()
+;;			(format-debug t "param-setup-gc freeing pointer at ~A~%" a)
+			(g-param-spec-unref (cffi:make-pointer a)))))
   object)
 
 
@@ -181,12 +184,15 @@
   (let* ((this (this-of object))
 	 (floating? (g-object-is-floating this))
          (a (cffi:pointer-address this)))
+;;    (format-debug t "object-setup-gc: registering pointer at ~A ~S~%" a object)
     (if (eq transfer :everything)
 	(if floating?
 	    (g-object-ref-sink this)
 	    (g-object-ref this))
 	(g-object-ref this))
-    (tg:finalize this (lambda () (g-object-unref (cffi:make-pointer a)))))
+    (tg:finalize this (lambda ()
+;;			(format-debug t "object-setup-gc freeing pointer at ~A~%" a)
+			(g-object-unref (cffi:make-pointer a)))))
   object)
 
 (defgeneric find-build-method (object-class cname))
