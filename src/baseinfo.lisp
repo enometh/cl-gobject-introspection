@@ -74,9 +74,11 @@
   (if info
       (let* ((pointer (slot-value info 'ptr))
 	     (addr (cffi:pointer-address pointer)))
+;;	(format-debug t "info-ffi-finalize: registered for pointer at ~A ~S~%" addr info)
 	(if (null transfer-ownership)
 	    (g-base-info-ref pointer))
 	(tg:finalize pointer (lambda ()
+;;			       (format-debug t "info-ffi-finalize: freeing pointer at ~A~%" addr)
 			       (g-base-info-unref (cffi:make-pointer addr))))))
   info)
 
