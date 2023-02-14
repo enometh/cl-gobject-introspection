@@ -202,7 +202,9 @@
   (with-slots (param-type)
       c-array-type
     (* (mem-size param-type)
-       (c-array-length c-array-type))))
+       (or (c-array-length c-array-type)
+	   (cerror "Continue" 'simple-error :format-control "BOGUS SITUATION: Annotations are unhandlable")
+	   1))))
 
 (defmethod mem-set (array value (c-array-type c-array-type))
   (with-slots (param-type fixed-size zero-terminated?)
@@ -378,6 +380,9 @@
 (defclass struct-type (interface-type)
   ())
 
+(defmethod mem-alloc (pos (struct-type struct-type))
+  (setf (cffi:mem-ref pos :pointer) (alloc-foreign struct-type)))
+
 (defmethod free-from-foreign-aggregated-p ((struct-type struct-type))
   (declare (ignore struct-type)))
 
@@ -404,6 +409,9 @@
 
 (defclass union-type (interface-type)
   ((size :initarg :size)))
+
+(defmethod mem-alloc (pos (union-type union-type))
+  (setf (cffi:mem-ref pos :pointer) (alloc-foreign union-type)))
 
 (defmethod free-from-foreign-aggregated-p ((union-type union-type))
   (declare (ignore union-type)))
@@ -526,6 +534,9 @@
 
 (defmethod initialize-copy ((obj builtin-type) (copy builtin-type))
   (copy-slots ((cffi-type)) (obj copy)))
+
+(defmethod mem-alloc (pos (builtin-type builtin-type))
+  (setf (cffi:mem-ref pos :pointer) (alloc-foreign builtin-type)))
 
 ;;madhu 200705
 (defvar *desc-of-type-on-builtin-type-returns-cffi-type* nil)
@@ -834,9 +845,10 @@
 	   (setf giarg inp)
 	   (incf-giargs inp))
 	  (:in-out
-	   (setf giarg voutp)
-	   (pointer->giarg inp voutp)
-	   (pointer->giarg outp voutp)
+	   (mem-alloc voutp type)
+	   (setf giarg (cffi:mem-ref voutp :pointer))
+	   (pointer->giarg inp (cffi:mem-ref voutp :pointer))
+	   (pointer->giarg outp (cffi:mem-ref voutp :pointer))
 	   (incf-giargs inp)
 	   (incf-giargs outp)
 	   (incf-giargs voutp))
@@ -884,14 +896,17 @@
 (defun out-arg->value (arg)
   (with-slots (data giarg length-arg)
       arg
-    (with-slots (type)
+    (with-slots (type direction caller-allocates)
 	data
       (let ((real-type
 	      (if length-arg
 		  (copy-find-set-c-array-type-length type
 						     (out-arg->value length-arg))
 		  type)))
-	(mem-get giarg real-type)))))
+	(prog1 (mem-get giarg real-type)
+	  (when (and (or (eql direction :in-out)
+			 (and (eql direction :out) caller-allocates)))
+	    (mem-free giarg real-type)))))))
 
 (defun in-arg-clear (arg)
   (with-slots (data giarg length-arg (arg-value value))
