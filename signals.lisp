@@ -361,9 +361,9 @@ id is passed for the signal detail is always set to 0."
 (defun register-destroyable-type (gtype)
   (if (not (gir:invoke (*gobject* "type_is_a") gtype (gir:%gtype :object)))
       (error "gtype ~D not a GObject subclass" gtype))
-  (if (not (gir:invoke (*gobject* "signal-lookup") "destroy" gtype))
+  (if (not (gir:invoke (*gobject* "signal_lookup") "destroy" gtype))
       (error "gtype ~D does nor have a destroy signal" gtype))
-  (pushnew *destroyable-types* gtype))
+  (pushnew gtype *destroyable-types*))
 
 (defstruct (signal-tracker (:constructor %make-signal-tracker))
   owner-destroy-id owner map)
