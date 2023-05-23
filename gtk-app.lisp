@@ -99,7 +99,7 @@
       (with-slots (container-view) container
 	#+(and clisp (not mt))
 	(gir-lib::clisp-single-thread-register-destroy-handler container-view)
-	(gir:connect container-view #+wk "destroy" #-wk "unrealize"
+	(gir:connect container-view #+wk "destroy" #-wk "close-request"
 		     (lambda (window)
 		       (declare (ignorable window))
 		       (setf (element-interface element) nil)
