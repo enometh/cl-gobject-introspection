@@ -103,6 +103,7 @@
 		     (lambda (window)
 		       (declare (ignorable window))
 		       (setf (element-interface element) nil)
+		       (interface-dispose container)
 		       #+(and clisp (not mt))
 		       (gir-lib::clisp-single-thread-run-loop window)))))
     (display container)
