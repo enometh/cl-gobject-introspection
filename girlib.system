@@ -29,6 +29,7 @@
 	       "ffi-callback-manager"
 	       "gslist"
 	       "glist"
+	       "ptrarray"
 	       "attr-hash"
 	       "gdbus-package"
 	       "gdbus-connection"
