@@ -47,21 +47,23 @@
 			     (push (cffi:foreign-string-to-lisp ptr) ret)))
     (nreverse ret)))
 
+(defun ptr->object (ptr &optional object-class)
+  (if object-class
+      (etypecase object-class
+	(gir::struct-class
+	 (gir::build-struct-ptr object-class ptr))
+	(gir::object-class
+	 (gir::build-object-ptr object-class ptr)))
+      ;; assume it is a gobject and crash to ldb
+      (gir::gobject
+       (cffi:mem-ref (cffi:mem-ref ptr :pointer) :ulong)
+       ptr)))
+
 (defun slist->objects (slist-ptr &optional object-class)
   (let (ret)
     (map-slist-1 slist-ptr
 		 (lambda (ptr)
-		   (push (if object-class
-			     (etypecase object-class
-			      (gir::struct-class
-			       (gir::build-struct-ptr object-class ptr))
-			      (gir::object-class
-			       (gir::build-object-ptr object-class ptr)))
-			     ;; assume it is a gobject and crash to ldb
-			     (gir::gobject
-			      (cffi:mem-ref (cffi:mem-ref ptr :pointer) :ulong)
-			      ptr))
-			 ret)))
+		   (push (ptr->object ptr) ret)))
     (nreverse ret)))
 
 (defun slist-length (slist-ptr)

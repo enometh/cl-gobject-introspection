@@ -13,15 +13,5 @@
   (let (ret)
     (map-list-1 list-ptr
 		(lambda (ptr)
-		  (push (if object-class
-			    (etypecase object-class
-			      (gir::struct-class
-			       (gir::build-struct-ptr object-class ptr))
-			      (gir::object-class
-			       (gir::build-object-ptr object-class ptr)))
-			    ;; assume it is a gobject and crash to ldb
-			    (gir::gobject
-			     (cffi:mem-ref (cffi:mem-ref ptr :pointer) :ulong)
-			     ptr))
-			ret)))
+		  (push (ptr->object ptr object-class) ret)))
     (nreverse ret)))
