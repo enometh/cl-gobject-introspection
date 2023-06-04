@@ -373,7 +373,8 @@ id is passed for the signal detail is always set to 0."
   (let ((ret (%make-signal-tracker :owner owner :map (make-hash-table))))
     (with-slots (owner owner-destroy-id map) ret
       (when (has-destroy-signal owner)
-	(setq owner-destroy-id (gir:connect owner "destroy" (lambda () (clrhash map)) :after t))))
+	(setq owner-destroy-id (gir:connect owner "destroy" (lambda () (clrhash map)) :after t))
+	(assert (> owner-destroy-id 0))))
     ret))
 
 
@@ -408,7 +409,7 @@ id is passed for the signal detail is always set to 0."
   (with-slots (map) self
     (or (gethash (cffi:pointer-address (gir:this-of obj)) map)
 	(setf (gethash (cffi:pointer-address (gir:this-of obj)) map)
-	      (make-signal-data :owner-signals nil :destroy-id 0)))))
+	      (make-signal-data :owner-signals nil :destroy-id nil)))))
 
 (defun signal-tracker-remove-tracker (self)
   (with-slots (owner-destroy-id owner) self
@@ -437,10 +438,13 @@ id is passed for the signal detail is always set to 0."
       (remhash obj-key map)
       (with-slots (owner-signals destroy-id) signal-data
 	(loop for id in owner-signals do
+	      (assert (> id 0))
 	      (gir:disconnect owner id))
 	(if destroy-id
-	    (gir::g-signal-handler-disconnect (cffi:make-pointer obj-key)
-					      destroy-id))
+	    (progn
+	      (assert (> destroy-id 0))
+	      (gir::g-signal-handler-disconnect (cffi:make-pointer obj-key)
+						destroy-id)))
 	(if (zerop (hash-table-count map))
 	    (signal-tracker-remove-tracker self))))))
 
@@ -463,7 +467,8 @@ id is passed for the signal detail is always set to 0."
 	    (gir:connect obj "destroy"
 			 (lambda ()
 			   (g-message "::signal-tracker-destroy:: ~S" (list self obj))
-			   (signal-tracker-untrack self obj)))))))
+			   (signal-tracker-untrack self obj))))
+      (assert (> (signal-data-destroy-id signal-data) 0)))))
 
 (defun signal-tracker-destroy (self)
   (signal-tracker-clear self)
@@ -473,6 +478,7 @@ id is passed for the signal detail is always set to 0."
 (defun connect-object (this-obj obj signal-name handler &key after)
   (let* ((signal-tracker (signal-manager-get-signal-tracker this-obj))
 	 (id (gir:connect this-obj signal-name handler :after after)))
+    (assert (> id 0))
     (signal-tracker-track signal-tracker obj (list id))))
 
 (defun disconnect-object (this-obj obj)
