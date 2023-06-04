@@ -531,11 +531,21 @@ If a wrong type name lisp is supplied *LISP* *WILL* *ABORT*.
 
 ;;additional window setup
 (defmethod activate-with-builder :after ((self example-3) builder &key)
-  (let ((quit-button (builder-get-object builder "quit" "Button")))
-    (gir:connect quit-button "clicked" (lambda (button)
-				     (declare (ignorable button))
-				     (quit self))))
-  (with-slots (container-view) self
+  (with-slots (app container-view) self
+    (gir-lib::register-destroyable-type (gir::gtype-of container-view))
+    (let ((quit-button (builder-get-object builder "quit" "Button")))
+      #+nil ;; works with gtk-3. leaks the closure in gtk4
+      (gir:connect quit-button "clicked" (lambda (button)
+					   (declare (ignorable button))
+					   (quit self)))
+      ;;#+nil ;;disconnect the signal and free the closure before quitting
+      (gir-lib::connect-object quit-button app
+			       "clicked" (lambda (button)
+					   (declare (ignorable button))
+					   (gir-lib::disconnect-object button app)
+					   (quit self)))
+      )
+
     (gir:invoke ( container-view "set_title" ) "Example-3")
     (gir:invoke ( container-view "set_default_size" ) 600 400)))
 
