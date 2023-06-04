@@ -163,6 +163,9 @@
 (defmethod activate ((self gtk-application-mixin))
   "Default direct method should set the container view"
   (with-slots ((win container-view) app) self
+    #-wk
+    (when win (gir:invoke (win "destroy")))
+    (when win (gir:invoke (win "run_dispose")))
     (setq win (gir:gobject-new (gir:gtype-of
 				(gir:nget *gtk* "ApplicationWindow"))
 			       "application"
@@ -256,6 +259,8 @@ wedged."
     (let ((id (gir:invoke (app "get_application_id"))))
       (interface-dispose self)
       (gir:invoke (app "quit"))
+      (dbus-unregister self)
+      (gir:invoke (app "run_dispose")) ; this should call g-dbus-unregister-object
       #+nil
       (gir::g-object-unref (gir::this-of app))
       (cond (id
@@ -266,6 +271,22 @@ wedged."
   (with-slots (app) self
     (or (gir:invoke (app "get_is_registered"))
 	(gir:invoke (app "register") nil))))
+
+(defun dbus-unregister (self)
+  "HOKEY. The hardcoded offsets are only for glib-2.7[26] on x86_64 linux"
+  (with-slots (app) self
+    (let ((session-bus (gir:invoke (app "get_dbus_connection"))))
+      (when session-bus
+	(let* ((app-ptr (gir:this-of app))
+	       (app-ptr-priv
+		(gir:get-private-ptr app-ptr (gir:nget *gio* "Application")))
+	       (app-impl-ptr (cffi:mem-ref app-ptr-priv :pointer 64))
+	       (object-id (cffi:mem-ref app-impl-ptr :uint 40))
+	       (fdo-object-id (cffi:mem-ref app-impl-ptr :uint 44))
+	       (actions-id (cffi:mem-ref app-impl-ptr :uint 48)))
+	  (loop for tag in (list object-id fdo-object-id actions-id)
+		unless (zerop tag)
+		do (gir:invoke (session-bus "unregister_object") tag)))))))
 
 (defmethod interface-dispose :before ((self gtk-application-mixin))
   (with-slots (app activate-id) self
