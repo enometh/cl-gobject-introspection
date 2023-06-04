@@ -356,7 +356,8 @@ id is passed for the signal detail is always set to 0."
 (defvar *destroyable-types* nil)
 
 (defun has-destroy-signal (obj)
-  (some (lambda (type) (typep obj type)) *destroyable-types*))
+  (some (lambda (type) (gir::g-type-is-a (gir::gtype-of obj) type))
+	*destroyable-types*))
 
 (defun register-destroyable-type (gtype)
   (if (not (gir:invoke (*gobject* "type_is_a") gtype (gir:%gtype :object)))
@@ -372,7 +373,8 @@ id is passed for the signal detail is always set to 0."
   (let ((ret (%make-signal-tracker :owner owner :map (make-hash-table))))
     (with-slots (owner owner-destroy-id map) ret
       (when (has-destroy-signal owner)
-	(setq owner-destroy-id (gir:connect owner "destroy" (lambda () (clrhash map)) :after t))))))
+	(setq owner-destroy-id (gir:connect owner "destroy" (lambda () (clrhash map)) :after t))))
+    ret))
 
 
 ;; implict signal-manager map of gobject-addresses -> signal-tracker objects
@@ -396,7 +398,7 @@ id is passed for the signal detail is always set to 0."
 	     (declare (ignore key))
 	     (signal-tracker-destroy tracker))
 	   *signal-trackers*)
-  (signal-tracker-clear *signal-trackers*))
+  (clrhash *signal-trackers*))
 
 (defstruct signal-data
   owner-signals			    ;list of handler ids
@@ -405,7 +407,7 @@ id is passed for the signal detail is always set to 0."
 (defun signal-tracker-get-signal-data (self obj)
   (with-slots (map) self
     (or (gethash (cffi:pointer-address (gir:this-of obj)) map)
-	(setf (gethash  (cffi:pointer-address (gir:this-of obj)) map)
+	(setf (gethash (cffi:pointer-address (gir:this-of obj)) map)
 	      (make-signal-data :owner-signals nil :destroy-id 0)))))
 
 (defun signal-tracker-remove-tracker (self)
@@ -427,22 +429,31 @@ id is passed for the signal detail is always set to 0."
   (declare (ignore self))
   (gir:disconnect obj id))
 
-(defun signal-tracker-untrack (self obj)
+(defun signal-tracker-untrack-internal (self obj-key)
+  ;; ugh
   (with-slots (owner map) self
-    (remhash (cffi:pointer-address (gir:this-of obj)) map)
-    (let ((signal-data (signal-tracker-get-signal-data self obj)))
+    (let ((signal-data (gethash obj-key map)))
+      (assert signal-data)
+      (remhash obj-key map)
       (with-slots (owner-signals destroy-id) signal-data
 	(loop for id in owner-signals do
 	      (gir:disconnect owner id))
 	(if destroy-id
-	    (gir:disconnect obj destroy-id))
+	    (gir::g-signal-handler-disconnect (cffi:make-pointer obj-key)
+					      destroy-id))
 	(if (zerop (hash-table-count map))
 	    (signal-tracker-remove-tracker self))))))
 
+(defun signal-tracker-untrack (self obj)
+  (signal-tracker-untrack-internal self
+				   (cffi:pointer-address (gir:this-of obj))))
+
 (defun signal-tracker-clear (self)
-  (maphash (lambda (key obj)
-	     (declare (ignore key))
-	     (signal-tracker-untrack self obj))
+  ;; the gjs implementation of this commit #74720f250e appears to be
+  ;; bogus
+  (maphash (lambda (obj-ptr signal-data)
+	     (declare (ignore signal-data))
+	     (signal-tracker-untrack-internal self obj-ptr))
 	   (signal-tracker-map self)))
 
 (defun signal-tracker-track-destroy (self obj)
@@ -450,7 +461,9 @@ id is passed for the signal detail is always set to 0."
     (unless (zerop (signal-data-destroy-id signal-data))
       (setf (signal-data-destroy-id signal-data)
 	    (gir:connect obj "destroy"
-			 (lambda () (signal-tracker-untrack self obj)))))))
+			 (lambda ()
+			   (g-message "::signal-tracker-destroy:: ~S" (list self obj))
+			   (signal-tracker-untrack self obj)))))))
 
 (defun signal-tracker-destroy (self)
   (signal-tracker-clear self)
@@ -466,3 +479,7 @@ id is passed for the signal detail is always set to 0."
   (let ((signal-tracker (signal-manager-maybe-get-signal-tracker this-obj)))
     (when signal-tracker
       (signal-tracker-untrack signal-tracker obj))))
+
+
+#+nil
+(shutdown-signal-manager)
