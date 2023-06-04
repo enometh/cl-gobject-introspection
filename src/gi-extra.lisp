@@ -145,3 +145,19 @@ or interface which implements the method."
    (this-of (type-class-peek (gtype-of object-class)))
    :pointer
    (find-vfunc-offset-recursive (gtype-of object-class) cname)))
+
+(defun get-private-ptr (obj-instance &optional (type-class nil type-class-supplied-p))
+  (let* ((obj-ptr (this-of obj-instance))
+	 (type-class-ptr (cond ((not type-class-supplied-p)
+				(cffi:mem-ref obj-ptr :pointer))
+			       ((typep type-class 'cffi:foreign-pointer)
+				type-class)
+			       (t	;fixme call g-type-class-peek
+				(gir::this-of
+				 (type-class-peek (gtype-of type-class)))))))
+    (cffi:inc-pointer obj-ptr
+		      (cffi:foreign-funcall "g_type_class_get_instance_private_offset"
+			:pointer type-class-ptr
+			:int))))
+
+(export '(get-private-ptr))
