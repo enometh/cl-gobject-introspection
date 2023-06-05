@@ -260,8 +260,6 @@ wedged."
     (let ((id (gir:invoke (app "get_application_id"))))
       (interface-dispose self)
       (gir:invoke (app "quit"))
-      (dbus-unregister self)
-      (gir:invoke (app "run_dispose")) ; this should call g-dbus-unregister-object
       #+nil
       (gir::g-object-unref (gir::this-of app))
       (cond (id
@@ -284,10 +282,32 @@ wedged."
 	       (app-impl-ptr (cffi:mem-ref app-ptr-priv :pointer 64))
 	       (object-id (cffi:mem-ref app-impl-ptr :uint 40))
 	       (fdo-object-id (cffi:mem-ref app-impl-ptr :uint 44))
-	       (actions-id (cffi:mem-ref app-impl-ptr :uint 48)))
-	  (loop for tag in (list object-id fdo-object-id actions-id)
+	       (actions-id (cffi:mem-ref app-impl-ptr :uint 48))
+	       #+wk
+	       (gtk-app-ptr-priv
+		(gir:get-private-ptr duapp-ptr (gir:nget *gtk* "Application")))
+	       #+wk
+	       (profiler-id (cffi:mem-ref gtk-app-ptr-priv :uint 80))
+	       (lost-signal (cffi:mem-ref app-impl-ptr :uint 24))
+	       (bus-name (cffi:mem-ref app-impl-ptr :string 16)))
+	  (break)
+	  (loop for tag in (list object-id fdo-object-id actions-id
+				 #+wk profiler-id)
 		unless (zerop tag)
-		do (gir:invoke (session-bus "unregister_object") tag)))))))
+		do (gir:invoke (session-bus "unregister_object") tag))
+	  (unless (zerop lost-signal)
+	    (gir:invoke (session-bus "signal_unsubscribe") lost-signal))
+	  (when bus-name
+	    (gir:invoke (session-bus "call_sync")
+	      "org.freedesktop.DBus"
+	      "/org/freedesktop/DBus"
+	      "org.freedesktop.DBus"
+	      "ReleaseName"
+	      (gir:convert-to-gvariant (list "bus-name") "(s)")
+	      nil
+	      (gir:nget *gio* "DBusCallFlags" :none)
+	      -1
+	      nil nil nil)))))))
 
 (defmethod interface-dispose :before ((self gtk-application-mixin))
   (with-slots (app activate-id) self
