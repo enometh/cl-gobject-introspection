@@ -189,7 +189,7 @@
   "This calls g_application_run which usually puts lisp in an unusable
 state. See RUN-SAFE instead."
   (with-slots (app status) self
-    (with-gtk-thread
+    ;;(with-gtk-thread
       (let ((errorp t))
 	(unwind-protect (progn (setq status (gir:invoke (app "run") nil))
 			       (setq errorp nil))
@@ -199,7 +199,7 @@ state. See RUN-SAFE instead."
 	    (cond (id
 		   (format t "removing id=~S~&" id)
 		   (remhash id *gtk-applications*))
-		  (t (remhash app *gtk-applications*)))))))))
+		  (t (remhash app *gtk-applications*))))))));;)
 
 ;; calling g_application_quit without destroying the window leaves the
 ;; window open and it leaves a dbus object for the open window. Our
