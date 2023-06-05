@@ -250,6 +250,7 @@ state. See RUN-SAFE instead."
     (setq activate-id (gir:connect app "activate"
 				   'gtk-application-activate-callback))))
 
+;; intended to work with only with RUN (not RUN-SAFE)
 (defmethod really-quit ((self gtk-application-mixin))
   "GApplication is said to be useless after invoking this. Should also
 unregister from D-Bus. But it doesn't. g_application_quit merely quits
