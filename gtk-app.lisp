@@ -511,6 +511,8 @@ If a wrong type name lisp is supplied *LISP* *WILL* *ABORT*.
 		      string  (length string))))
       (unless (or builder-ui-path builder-ui-string)
 	(warn "builder-ui not supplied via either :ui-path or :ui-string"))
+      #+wk
+      (gir:invoke (builder "connect_signals") (cffi:null-pointer))
       (activate-with-builder self builder
 			     :main-window-id main-window-id
 			     :main-window-gir-name main-window-gir-name))))
