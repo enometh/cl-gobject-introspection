@@ -4,7 +4,8 @@
 
 (defun default-ui-file-path (source)
   (make-pathname :type "ui"
-		 :name (pathname-name source)
+		 :name #-wk(pathname-name source)
+		 #+wk (concatenate 'string (pathname-name source) "a")
 		 :defaults source))
 
 (defparameter $builder-file
