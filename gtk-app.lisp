@@ -290,7 +290,6 @@ wedged."
 	       (profiler-id (cffi:mem-ref gtk-app-ptr-priv :uint 80))
 	       (lost-signal (cffi:mem-ref app-impl-ptr :uint 24))
 	       (bus-name (cffi:mem-ref app-impl-ptr :string 16)))
-	  (break)
 	  (loop for tag in (list object-id fdo-object-id actions-id
 				 #+wk profiler-id)
 		unless (zerop tag)
