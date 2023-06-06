@@ -285,7 +285,7 @@ wedged."
 	       (actions-id (cffi:mem-ref app-impl-ptr :uint 48))
 	       #+wk
 	       (gtk-app-ptr-priv
-		(gir:get-private-ptr app-ptr (gir:nget *gtk* "Application")))
+		(gir:get-private-ptr duapp-ptr (gir:nget *gtk* "Application")))
 	       #+wk
 	       (profiler-id (cffi:mem-ref gtk-app-ptr-priv :uint 80))
 	       (lost-signal (cffi:mem-ref app-impl-ptr :uint 24))

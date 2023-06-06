@@ -44,12 +44,23 @@
 ;;additional window setup
 (defmethod activate-with-builder :after ((self test-gtk-example-app-3)
 					 builder &key)
+  (with-slots (app container-view) self
   (let ((quit-button (builder-get-object builder "quit" "Button")))
+    #+nil
     (gir:connect quit-button "clicked"
 		 (lambda (button)
 		   (declare (ignorable button))
 		   (format t "clicked-callback~&")
-		   (quit self)))))
+		   (quit self)))
+
+    (gir-lib::connect-object quit-button container-view  "clicked"
+		 (lambda (button)
+		   (declare (ignorable button))
+		   (gir-lib::disconnect-object quit-button container-view)
+		   (format t "clicked-callback~&")
+		   (quit self)))
+
+)))
 
 #+nil
 (defvar $app-3 nil)
@@ -74,3 +85,6 @@
 
 #+nil
 (gtk-app::really-quit $app-3)
+
+#+nil
+(gtk-app::dbus-unregister $app-3)
