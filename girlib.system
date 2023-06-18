@@ -47,6 +47,7 @@
 	       "actions"
 	       "signals"
 	       "unix-signals"
+	       "gtk-clipboard"
                ))
 
 #+nil
