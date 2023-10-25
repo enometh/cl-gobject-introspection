@@ -48,6 +48,7 @@
 	       "signals"
 	       "unix-signals"
 	       "gtk-clipboard"
+	       "file-info-attr"
                ))
 
 #+nil
