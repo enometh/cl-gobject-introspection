@@ -209,7 +209,7 @@ the file-info object as the second value."
     (values
      (file-info-ls-attributes file-info namespace)
      file-info
-     gfile)))
+     gfile))
 
 (defun file-info-remove-attribute (file-info-obj attribname)
   (gir:invoke (file-info-obj "remove_attribute") attribname))
