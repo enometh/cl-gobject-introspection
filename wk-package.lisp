@@ -28,7 +28,7 @@
    (apply #'gir:require-namespace
 	  (if (featurep :wk)
 	      "WebKit2WebExtension"
-	      "WebKitExtension")
+	      "WebKitWebExtension")
 	  (list
 	   (if (featurep :wk)
 	       "4.1"
@@ -44,3 +44,13 @@
 	       "6.0")))))
 
 (export '(*wk* *wkext* *jsc*))
+
+#||
+(gir-lib:list->strings
+ (gir:invoke (*gi-repository* "Repository" "get_search_path")))
+((gir:invoke (*gi-repository* "Repository" "prepend_search_path")
+  "/12/build/webkitgtk/build.amd64/girepository-1.0")
+((gir:invoke (*gi-repository* "Repository" "prepend_library_path")
+  "/12/build/webkitgtk/build.amd64/lib")
+(require 'girlib-wk)
+||#
