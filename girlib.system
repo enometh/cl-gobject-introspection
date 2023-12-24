@@ -54,3 +54,13 @@
 
 #+nil
 (mk:oos :girlib :load :compile-during-load t)
+
+(mk:defsystem :girlib-wk
+  :source-pathname *girlib-source-dir*
+  :binary-pathname *girlib-binary-dir*
+  :source-extension "lisp"
+  :depends-on ("girlib")
+  :components ("wk-package"))
+
+#+nil
+(mk:oos :girlib-wk :load :compile-during-load t)
