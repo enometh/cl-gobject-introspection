@@ -243,7 +243,7 @@ reliable."
     (loop for attribname in (file-info-get-attributes-list file-info-obj)
 	  for p = (search "::" attribname)
 	  unless (or (some (lambda (x)
-			     (user::prefixp attribname x :end1 p))
+			     (cl-user:prefixp attribname x :end1 p))
 			   writeable-namespaces)
 		     (match-attribute-info-name attribname
 						settable-attribute-info-list))

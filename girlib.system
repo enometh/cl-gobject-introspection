@@ -25,6 +25,7 @@
   :components (
 	       "ensure-ctf"
 	       "package"
+	       "user-compat"
 	       "gtk-thread"
 	       "ffi-callback-manager"
 	       "gslist"
