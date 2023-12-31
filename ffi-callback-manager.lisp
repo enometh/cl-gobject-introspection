@@ -121,6 +121,9 @@ in the CALLBACK-MANAGER."
   (format t "depth=~D OK~%" (gir:invoke (*glib* "main_depth")))
   (values 1 2 3))
 
+(export '(idle-add block-idle-add))
+
+
 
 ;;; handle patterns that use GAsynReadyCallback by using the user-data
 ;;; field to indicate a registered thunk. The thunk will be called
