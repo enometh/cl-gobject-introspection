@@ -12,14 +12,26 @@
 ;; dont even create a mainloop. just call the default main context
 ;; iteration in its own thread.
 
+
+(defun make-lock (name)
+  (#+(or mkcl ecl sbcl) bordeaux-threads:make-recursive-lock
+     #-(or mkcl ecl sbcl)
+     bordeaux-threads:make-lock
+     name))
+
+(defmacro with-lock-held ((place) &body body)
+  `(#+(or mkcl ecl sbcl)
+      bordeaux-threads:with-recursive-lock-held
+      #-(or mkcl ecl sbcl)
+      bordeaux-threads:with-lock-held
+      (,place)
+      ,@body))
+
 (defstruct (gtk-main (:constructor %make-gtk-main))
   (thread nil)
   (queue (make-array 0 :adjustable t :fill-pointer t)) ;task-queue
   (source-id nil)     ;glib main-loop source to process the task-queue
-  (lock (#+(or mkcl ecl) bordeaux-threads:make-recursive-lock
-	 #-(or mkcl ecl)
-	 bordeaux-threads:make-lock
-	 "gtk-task-queue-lock"))
+  (lock (make-lock "gtk-task-queue-lock"))
   (free-list nil))		  ; indices of removed thunks in queue
 
 (defvar *gtk-main* (%make-gtk-main))
@@ -67,7 +79,7 @@
 (cffi:defcallback process-gtk-main-task-queue :boolean ((user-data :pointer))
   (with-slots (queue lock free-list) *gtk-main*
     (let (index thunk)
-      (bordeaux-threads:with-lock-held (lock)
+      (with-lock-held (lock)
 	 (setq index (cffi:mem-ref user-data :int))
 	 (setq thunk (elt queue index))
 	 (push index free-list)		; delete it
@@ -162,7 +174,7 @@
 
 #+nil
 (with-slots (lock thread) *gtk-main*
-  (bordeaux-threads:with-lock-held (lock)
+  (with-lock-held (lock)
   (bordeaux-threads:destroy-thread thread)))
 
 ;; for single-threaded lisps: (and clisp (not mt))
@@ -209,7 +221,7 @@
   (check-type thunk function)
   (if (find :bordeaux-threads *features*)
       (with-slots (lock queue free-list) *gtk-main*
-	(bordeaux-threads:with-lock-held (lock)
+	(with-lock-held (lock)
 	  (let ((index (pop free-list)))
 	    (if index
 		(setf (elt queue index) thunk)

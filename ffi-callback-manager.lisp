@@ -3,7 +3,7 @@
 (declaim (optimize (speed 0) (safety 1) (debug 3)))
 
 (defstruct (callback-manager (:constructor %make-callback-manager))
-  (lock (bordeaux-threads:make-lock "callback-manager-lock"))
+  (lock (make-lock "callback-manager-lock"))
   (queue (make-array 0 :adjustable t :fill-pointer t))
   (free-list nil))
 
@@ -22,7 +22,7 @@
 pointer which is the address of an integer that identifies the object
 in the CALLBACK-MANAGER."
   (with-slots (queue free-list lock) *callback-manager*
-    (bordeaux-threads:with-lock-held (lock)
+    (with-lock-held (lock)
       (let* ((index (pop free-list)))
 	(if index
 	    (setf (elt queue index) function)
@@ -33,7 +33,7 @@ in the CALLBACK-MANAGER."
 (defun unregister-callback (loc)
   (with-slots (lock queue free-list) *callback-manager*
     (let ((index (cffi:mem-ref loc :int)))
-      (bordeaux-threads:with-lock-held (lock)
+      (with-lock-held (lock)
 	(push index free-list)
 	(setf (elt queue index) nil)))
     (cffi:foreign-free loc)))
@@ -43,7 +43,7 @@ in the CALLBACK-MANAGER."
   (with-slots (lock queue free-list) *callback-manager*
     (declare (ignorable free-list))
     (let ((index (cffi:mem-ref loc :int)))
-      (bordeaux-threads:with-lock-held (lock)
+      (with-lock-held (lock)
 	(elt queue index)))))
 
 (defmacro with-registered-callback ((loc-var) function &body body)
