@@ -134,10 +134,18 @@
   #-no-gtk
   (init-gtk)
   ;; todo avoid call to maincontext
+  #+mkcl
+  (progn (si::disable-fpe t)
+	 (format t "MKCL: all enabled FPE: ~S~&"  (si::all-enabled-fpe)))
+  #+ecl
+  (progn (ext:trap-fpe t nil)
+	 (format t "ECL: all enabled FPE: ~S~&"  (ext:trap-fpe 'last nil)))
   (prog ((default-context (gir:invoke (*glib* "main_context_default"))))
    loop
      (cond (*gtk-main-kill-switch* (return))
-	   (t (unwind-protect (gir:invoke (default-context "iteration") t)
+	   (t (unwind-protect
+		   (with-simple-restart (recover "Ignore Error in Main Context Iteration")
+		     (gir:invoke (default-context "iteration") t))
 		(go loop)))))
   (format t "Impossible! Leaving eternal damnation~&"))
 
@@ -148,7 +156,10 @@
 (defun run-one-main-context-iteration ( &optional block)
   (prog ((default-context (gir:invoke (*glib* "main_context_default"))))
      (cond (*gtk-main-kill-switch* (return))
-	   (t (unwind-protect (gir:invoke (default-context "iteration") block))))))
+	   (t (unwind-protect
+		   (with-simple-restart (recover "Ignore Error in Main Context Iteration")
+		     (gir:invoke (default-context "iteration") block)))))))
+
 #+nil
 (run-one-main-context-iteration t)
 
@@ -195,7 +206,9 @@
 (defun clisp-single-thread-run-loop (window)
   (let ((default-context (gir:invoke (*glib* "main_context_default"))))
     (loop (cond (*gtk-main-kill-switch* (return))
-		(t (unwind-protect (gir:invoke (default-context "iteration") t)))))
+		(t (unwind-protect
+		   (with-simple-restart (recover "Ignore Error in Main Context Iteration")
+		     (gir:invoke (default-context "iteration") t))))))
     (format t "clisp-single-thread: loop exited on window ~S ~&" window)
     (setq *gtk-main-single-threaded-kill-switch* nil)))
 
@@ -219,6 +232,7 @@
 ;; execute thunk in the default main context
 (defun gtk-enqueue (thunk)
   (check-type thunk function)
+  (with-simple-restart (recover "Recover from GTK-ENQUEUE")
   (if (find :bordeaux-threads *features*)
       (with-slots (lock queue free-list) *gtk-main*
 	(with-lock-held (lock)
@@ -237,7 +251,7 @@
 			  loc		      ;user-data
 			  (cffi:null-pointer) ;notifier
 			  )))))
-      (funcall thunk)))
+      (funcall thunk))))
 
 (defun apply-in-gtk-thread (function &rest args)
   (gtk-enqueue (lambda () (apply function args))))
