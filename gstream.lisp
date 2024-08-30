@@ -6,7 +6,8 @@
 (defclass gio-input-stream
     (trivial-gray-streams:fundamental-binary-input-stream
      trivial-gray-streams:fundamental-character-input-stream)
-  ((gio-input-stream :initarg :gio-input-stream)))
+  ((gio-input-stream :initarg :gio-input-stream)
+   (cancellable :initarg :cancellable :initform nil)))
 
 (defmethod close ((stream gio-input-stream) &key abort)
   (declare (ignore abort))
@@ -19,10 +20,12 @@
 
 (defmethod trivial-gray-streams:stream-read-sequence
     ((stream gio-input-stream) seq start end &key)
-  (with-slots (gio-input-stream) stream
+  (with-slots (gio-input-stream cancellable) stream
     (let* ((required (- end start))
 	   (gbytes (gir:invoke (gio-input-stream "read_bytes")
-			       required nil)))
+			       required cancellable)))
+      (when (zerop (gir:invoke (gbytes "get_size")))
+	(error 'end-of-file :stream stream))
       (loop (multiple-value-bind (data size)
 		(gir:invoke (gbytes "unref_to_data"))
 	      (replace seq data :start1 start :end1 end :end2 size)
@@ -56,21 +59,22 @@
 (defclass gio-output-stream
     (trivial-gray-streams::fundamental-binary-output-stream
      trivial-gray-streams:fundamental-character-output-stream)
-  ((gio-output-stream :initarg :gio-output-stream)))
+  ((gio-output-stream :initarg :gio-output-stream)
+   (cancellable :initarg :cancellable :initform nil)))
 
 (defmethod trivial-gray-streams:stream-line-column ((stream gio-output-stream))
   nil)
 
 (defmethod trivial-gray-streams:stream-write-sequence
     ((stream gio-output-stream) seq start end &key)
-  (with-slots (gio-output-stream) stream
+  (with-slots (gio-output-stream cancellable) stream
     (let* ((gbytes0 (gir:invoke (*glib* "Bytes" "new") (subseq seq start end)))
 	   (gbytes gbytes0))
       (loop (let ((size (gir:invoke (gio-output-stream "write_bytes")
-				    gbytes nil)))
+				    gbytes cancellable)))
 	      (cond ((= size (- end start))
 		     (gir:invoke (gbytes0 "unref"))
-		     (return t))
+		     (return seq))
 		    ((< size (- end start))
 		     (setq gbytes (gir:invoke (gbytes "new_from_bytes")
 					      size (- end size))))
