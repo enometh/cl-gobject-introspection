@@ -161,7 +161,8 @@
 		     (gir:invoke (default-context "iteration") block)))))))
 
 #+nil
-(run-one-main-context-iteration t)
+(let ((*gtk-main-kill-switch* nil))
+  (run-one-main-context-iteration t))
 
 (defun start-gtk-thread ()
   #-no-gtk
