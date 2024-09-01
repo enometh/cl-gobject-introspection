@@ -140,6 +140,9 @@
   #+ecl
   (progn (ext:trap-fpe t nil)
 	 (format t "ECL: all enabled FPE: ~S~&"  (ext:trap-fpe 'last nil)))
+  #+sbcl
+  (progn (SB-INT:SET-FLOATING-POINT-MODES :TRAPS (remove :divide-by-zero (getf (sb-int:get-floating-point-modes) :traps)))
+	 (format t "SBCL: traps: ~S~&" (getf (sb-int:get-floating-point-modes) :traps)))
   (prog ((default-context (gir:invoke (*glib* "main_context_default"))))
    loop
      (cond (*gtk-main-kill-switch* (return))
