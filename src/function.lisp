@@ -1216,6 +1216,8 @@ generate and compile translator clozures over the callback-info.)"
 			      (builtin-type (cffi-type-of foreign-type))
 			      (enum-type :int)
 			      (pointer-type :pointer)
+			      ((or struct-type union-type)
+			       :pointer)
 			      (otherwise foreign-type)))
 			  (cdr foreign-types)))
 	    (if signalp `((,data :pointer))))
