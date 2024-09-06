@@ -15,12 +15,12 @@
   (cffi:with-foreign-slots ((len pdata) gptrarray-ptr (:struct gptrarray))
     (assert (>= index 0))
     (assert (< index len))
-    (cffi:mem-ref pdata :pointer index)))
+    (cffi:mem-aref pdata :pointer index)))
 
 (defun map-ptr-array-1 (gptrarray-ptr function)
   (cffi:with-foreign-slots ((len pdata) gptrarray-ptr (:struct gptrarray))
     (loop for i below len
-	  do (funcall function (cffi:mem-ref pdata :pointer i)))))
+	  do (funcall function (cffi:mem-aref pdata :pointer i)))))
 
 (defun ptr-array->strings (gptrarray-ptr)
   (let (ret)
