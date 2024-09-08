@@ -404,3 +404,40 @@ get mode=3 - val is the index of the property to retrieve"
 (change-window-property $xid "_MOTIF_WM_HINTS" '(2 0 2 0 0) "CARDINAL" 32
 			:xdisplay-ptr $xdisplay-ptr)
 ||#
+
+
+
+;;; ----------------------------------------------------------------------
+;;;
+;;;
+;;;
+
+#||
+#define PropertyNotify		28
+typedef struct {
+	int type;
+	unsigned long serial;	/* # of last request processed by server */
+	Bool send_event;	/* true if this came from a SendEvent request */
+	Display *display;	/* Display the event was read from */
+	Window window;
+	Atom atom;
+	Time time;
+	int state;		/* NewValue, Deleted */
+} XPropertyEvent;
+#define PropertyNewValue	0
+#define PropertyDelete		1
+||#
+
+(cffi:defcstruct property-event
+  (type :int)
+  (serial :unsigned-long)
+  (send-event :boolean)
+  (display-ptr :pointer)
+  (window-id :unsigned-long)
+  (atom :unsigned-long)
+  (time :unsigned-long)
+  (state :int))
+
+#+nil
+(= (cffi:foreign-type-size '(:struct property-event)) 64)
+
