@@ -12,12 +12,17 @@
 
 (export '(get-xdisplay-ptr atom-name get-string-atom atom-prop-op
 	  list-window-properties get-window-property
-	  change-window-property))
+	  change-window-property
+	  property-event))
 
 (defun get-xdisplay-ptr ()
-  ;; gdk3
+  #+wk
   (and (cffi:foreign-symbol-pointer "gdk_x11_get_default_xdisplay")
-       (cffi:foreign-funcall "gdk_x11_get_default_xdisplay" :pointer)))
+       (cffi:foreign-funcall "gdk_x11_get_default_xdisplay" :pointer))
+  #-wk
+  (cffi:foreign-funcall "gdk_x11_display_get_xdisplay"
+    :pointer (cffi:foreign-funcall "gdk_display_get_default" :pointer)
+    :pointer))
 
 (defun intern-atom (atom-name &key (only-if-exists t) xdisplay-ptr)
   (assert (cffi:pointerp xdisplay-ptr))
