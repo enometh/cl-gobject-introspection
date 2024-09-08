@@ -50,6 +50,8 @@
 	       "unix-signals"
 	       "gtk-clipboard"
 	       "file-info-attr"
+	       "cmdprompt"
+	       "surfprop"
                ))
 
 #+nil
