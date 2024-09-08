@@ -120,7 +120,17 @@
   (x11-init-threads)
   (if (featurep :gtk4)
       (gir:invoke (*gtk* "init"))
-      (gir:invoke (*gtk* "init") nil)))
+      (handler-bind ((simple-error
+		      (lambda (e &aux c)
+			(when (and
+			       (string-equal
+				"BOGUS SITUATION: Annotations are unhandlable"
+				(simple-condition-format-control e))
+			       (setq c (find-restart 'continue)))
+			  (g-message "gtk3: working around annotiation problem in gtk_init")
+			  (invoke-restart c)))))
+	(gir:invoke (*gtk* "init") nil))))
+	
 
 (defun run-gtk-main ()
   "Enter the GTK main loop."
