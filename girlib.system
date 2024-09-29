@@ -51,6 +51,7 @@
 	       "gtk-clipboard"
 	       "file-info-attr"
 	       "cmdprompt"
+	       "plists-matching"
 	       "surfprop"
                ))
 

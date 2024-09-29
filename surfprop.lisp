@@ -18,93 +18,9 @@
 ;;; both use the event controller key framework for processing
 ;;; keypress events, which can be used to bind keys to a top level
 ;;; window.
-
-
-(defun plist-empty-p (plist exclude-keys)
-  (zerop (loop for (k1 _v1 . _rest1) on plist by #'cddr
-	       unless (find k1 exclude-keys)
-	       count 1)))
-
-#+nil
-(plist-empty-p '(:cmd 1) '(:cmd))
-
-(defun plists-match-p (p1 p2 &key (test #'eql) exclude-keys require-all-p)
-  "Return T if the keys of plist P1 (except those in EXCLUDE-KEYS) that
-are in plist P2 have the same value under TEST. TEST is applied to the
-values of the keys to see if they are the same.  If REQUIRE-ALL-P is
-non-NIL all keys in P1 (excluding those in EXCLUDE-KEYS) must be found
-in P2. Returns T if p1 and p2 are both empty after excluding
-EXCLUDE-KEYS."
-  (check-type p1 cons)
-  (check-type p2 cons)
-  (loop for (k1 v1 . rest1) on p1 by #'cddr
-	with count = 0
-	unless (find k1 exclude-keys)
-	do (let* ((v2 (getf p2 k1 '+unbound+))
-		  (v2-found-p (not (eql v2 '+unbound+))))
-	     (cond ((and require-all-p (not v2-found-p)) (return nil))
-		   ((funcall test v1 v2) (incf count))
-		   (t (return nil))))
-	finally  (if (zerop count)
-		     (return (values (plist-empty-p p2 exclude-keys) t))
-		     (return t))))
-
-
-#||
-(plists-match-p '(:a 1 :b 2 :cmd 12) '(:a 1 :c 2 :cmd 'barf))
-(plists-match-p '(:a 1 :b 2) '(:a 1 :c 2 :cmd 'barf))
-(plists-match-p '(:a 1 :b 2) '(:a 1 :c 2 :b 3))
-(plists-match-p '(:b 2) '(:a 1 :b 2))
-(plists-match-p '(:b 2) '(:b 1) :exclude-keys '(:b))
-(plists-match-p '(:b 2 :a 1) '(:b 1 :a 1 :c 2) :exclude-keys '(:b :a))
-(plists-match-p '(:b 2 :c 3) '(:a 1 :b 2))
-(plists-match-p '(:b 2 :c 3) '(:a 1 :b 2) :exclude-keys '(:c))
-(plists-match-p '(:b 2 :c 3) '(:a 1 :b 2) :exclude-keys '(:c) :require-all-p t)
-(plists-match-p '(:b 2 :c 3) '(:a 1 :b 2))
-||#
-
-(defun make-plists-match-p-fn (exclude-keys test require-all-p)
-  (lambda (a b)
-    (plists-match-p a b :test test :exclude-keys exclude-keys
-		    :require-all-p require-all-p)))
-
-(defun find-plists-matching (plist plists-list exclude-keys test require-all-p)
-  (loop for head = plists-list then (cdr found)
-	for found = (member plist head
-			    :test (make-plists-match-p-fn exclude-keys test
-							  require-all-p))
-	if found collect (car found)
-	unless head do (loop-finish)))
-
-(defun uninstall-plist (plist plists-list-var exclude-keys test require-all-p)
-  (check-type plists-list-var symbol)
-  (let ((fn (make-plists-match-p-fn exclude-keys test require-all-p)))
-    (flet ((f (x) (funcall fn plist x)))
-      (set plists-list-var (remove-if #'f (symbol-value plists-list-var))))))
-
-(defun install-plist (plist plists-list-var exclude-keys test require-all-p)
-  (check-type plists-list-var symbol)
-  (let* ((plists-list (symbol-value plists-list-var))
-	 (found (member plist plists-list
-			:test (make-plists-match-p-fn exclude-keys test require-all-p))))
-    (cond ((not found)
-	   (setf (symbol-value plists-list-var)
-		 (cons plist plists-list)))
-	  (t (loop for k in exclude-keys do
-		   (loop for (a b . rest) on plist by #'cddr
-			 when (eql a k)
-			 do
-			 (setf (getf (car found) k) b)
-			 #+nil
-			 (if (null b)
-			     (remf (car found) k)
-			     (setf (getf (car found) k) b))
-			 (loop for (c d . rest1) on rest by #'cddr
-			       do (assert (not (eql c k))
-				      nil "duplicate excluded keys"))))
-	     (assert (not (find-plists-matching plist (cdr found) exclude-keys test require-all-p))
-		 nil "Duplicates found")
-	     ))))
+;;;
+(eval-when (load eval compile)
+  (use-package "PLISTS-MATCHING"))
 
 (defvar *processx-property-changed-hook* nil
   "Entries are plists, each plist can contain the keys :display-ptr,
@@ -302,8 +218,9 @@ should return T if it handles it (and stop further searching).")
 #+nil
 *global-keymap*
 
+#+nil
 (plists-match-p ;;(car *processx-property-changed-hook*)
-		(list :CMD HANDLE-SURF-GO :ATOM 679)
+		(list :CMD 'HANDLE-SURF-GO :ATOM 679)
 		(list :keyval 120 :keycode 53 :state 8) :require-all-p nil)
 
 (defun run-keymap-hook (&rest args &key keyval keycode state &allow-other-keys &aux ret cmd-1)
@@ -390,6 +307,7 @@ should return T if it handles it (and stop further searching).")
     (gir:invoke (sp "wait_check") nil)))
 
 (defun make-setprop-cmdargs (readprop setprop prompt)
+  (declare (special $win))
   (list "/bin/sh"
 	"-c"
 	"omnihist-surf goto \"$0\" \"$1\" \"$2\" \"\$3\""
@@ -411,7 +329,7 @@ should return T if it handles it (and stop further searching).")
   (if (eql atom (xlib-xprop::intern-atom "_SURF_GO" :xdisplay-ptr $xdisplay-ptr
 					 :only-if-exists nil))
       (warn "handle-surf-go: ~S"
-	    (xlib-xprop::get-string-atom atom :xdisplay-ptr display-ptr
+	    (xlib-xprop::get-string-atom atom :xdisplay-ptr $xdisplay-ptr
 					 :xid window-id
 					 :string-type :utf8-string))))
 
