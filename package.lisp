@@ -3,4 +3,6 @@
   (:use "CL")
   (:export
    "GDK-UNICODE-TO-KEYVAL"
-   "GDK-KEYVAL-TO-UNICODE"))
+   "GDK-KEYVAL-TO-UNICODE"
+   "GDK-KEY-INIT-TABLES"
+   "GDK-KEYVAL-NAME"))

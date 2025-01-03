@@ -19,6 +19,7 @@
    :components (
 		"package"
 		"gdkkeyuni"
+		"gdkkeys"
                ))
 
 #+nil
