@@ -130,6 +130,7 @@ die "Could not open file XF86keysym.h: $!\n" unless open(IN_XF86KEYSYM, "<:utf8"
 while (<IN_XF86KEYSYM>)
 {
 	next if ( ! /^#define / );
+	next if ( /^#define _EVDEVK/ );
 
 	@keysymelements = split(/\s+/);
 	die "Internal error, no \@keysymelements: $_\n" unless @keysymelements;
@@ -152,6 +153,11 @@ while (<IN_XF86KEYSYM>)
 	next if ( $_ eq "XF86XK_Calculater");
 
 	$_ = $keysymelements[2];
+	if ( /_EVDEVK\((0x[0-9a-f]+)\)/ ) {
+	    $_ = sprintf("%#x", (0x1008100 + $1));
+	    $keysymelements[2] = $_;
+	}
+
 	die "Internal error, was expecting \"0x*\", found: $_\n" if ( ! /^0x/ );
 
 	my $element = $keysymelements[1];
