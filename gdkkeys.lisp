@@ -7,6 +7,49 @@
 ;;;   Copyright (C) 2024 Madhu.  All Rights Reserved.
 ;;;
 (in-package "GDK-KEY")
+
+;;; ----------------------------------------------------------------------
+;;;
+;;;
+;;;
+(defvar $gdk-keysyms (make-hash-table :test #'equal))
+
+(defun read-gdk-keysyms (file)
+  (let ((ht $gdk-keysyms))
+    (with-open-file (stream file)
+      (loop for line = (read-line stream nil)
+	    while line
+	    do (multiple-value-bind (beg end begs ends)
+		   (cl-ppcre:scan "^#define (GDK_KEY_[^ ]+) (0x[0-9a-f]+)$"
+				  line)
+		 (when beg
+		   (let ((key (subseq line (elt begs 0) (elt ends 0)))
+			 (ret (subseq line (elt begs 1) (elt ends 1))))
+		      (assert (cl-user::prefixp "0x" ret))
+		      (setf (gethash key  ht)
+			    (parse-integer (subseq ret 2) :radix 16)))))))
+    ht))
+
+
+#||
+(setq $s "#define GDK_KEY_Next_VMode 0x1008fe22")
+(multiple-value-bind (beg end begs ends)
+    (cl-ppcre:scan "^#define (GDK_KEY_[^ ]+) (0x[0-9a-f]+)$" $s)
+  (list beg end begs ends))
+(clrhash $gdk-keysyms)
+(read-gdk-keysyms (mk::system-relative-pathname :cl-gdk-key
+						"data/gdkkeysyms.h"))
+(gethash "GDK_KEY_Next_VMode" $gdk-keysyms)
+(=(get-gdk-keysym "BackSpace")65288)
+||#
+
+(defun get-gdk-keysym (name &key ((:gdk-keysyms $gdk-keysyms) $gdk-keysyms))
+  "NAME is a string designator for one of the constants typically found
+in gdk/gdkkeysyms.h. Return the integer value associated with NAME."
+  (let ((name (string name)))
+    (unless (cl-user::prefixp "GDK_KEY_" name)
+      (setq name (concatenate 'string "GDK_KEY_" name)))
+    (gethash name $gdk-keysyms)))
 
 
 ;;; ----------------------------------------------------------------------
@@ -65,4 +108,7 @@
 (defun gdk-key-init-tables ()
   (read-keynames-table
    (mk::system-relative-pathname :cl-gdk-key
-				 "data/keynames.txt")))
+				 "data/keynames.txt"))
+  (read-gdk-keysyms
+   (mk::system-relative-pathname :cl-gdk-key
+				 "data/gdkkeysyms.h")))
