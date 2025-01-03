@@ -20,5 +20,8 @@ as available on commit 0b57bd5a53afd012
 - data/keynames-translate.txt
 - data/gen-keyname-table.pl
 - data/keynames.txt
-
-
+- data/gdkkeysyms.h
+  generated from data/gdkkeysyms-update.pl.
+obtain XF86keysym.h and keysymdef.h from
+www.x.org/releases/individual/xserver/xorg-proto-2024.1
+after fixing fix "Internal error, was expecting "XF86XK_*", found: _EVDEVK(_v)"
