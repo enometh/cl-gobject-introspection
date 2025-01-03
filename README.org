@@ -10,3 +10,15 @@
 
 * The GDK-KEY Package
 lisp versions of some gtk4/gdk/gdkkey*[ch] functions.
+
+
+
+* Directory Layout
+** data: files from gitlab.gnome.org/GNOME/gtk.git
+as available on commit 0b57bd5a53afd012
+- data/gdkkeysyms-update.pl
+- data/keynames-translate.txt
+- data/gen-keyname-table.pl
+- data/keynames.txt
+
+
