@@ -1,0 +1,12 @@
+#+title: cl-gdk-key functions in common lisp
+#+author: Madhu <enometh@net.meer>
+#+language: en
+#+export_file_name: cl-gdk-key.html
+#+texinfo_dir_category: CL misc lib
+#+texinfo_dir_title: CL-GDK-KEY: (cl-gdk-key).
+#+texinfo_dir_desc: CL-GDK Key
+#+PROPERTY: header-args :eval never-export
+#+PROPERTY: header-args :results replace raw drawer
+
+* The GDK-KEY Package
+lisp versions of some gtk4/gdk/gdkkey*[ch] functions.
