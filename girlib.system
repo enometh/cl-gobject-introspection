@@ -28,6 +28,7 @@
 	       "user-compat"
 	       "gtk-thread"
 	       "ffi-callback-manager"
+	       "idle-adds"
 	       "gslist"
 	       "glist"
 	       "ptrarray"

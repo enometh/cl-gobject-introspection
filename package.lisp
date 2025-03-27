@@ -31,10 +31,6 @@
    ;; gdbus-connection
    "DBUS-INIT-BUS" "*CONNECTION*"
 
-   ;; ffi-callback-manager
-   "FIND-CALLBACK" "WITH-REGISTERED-CALLBACK"
-   "FUNCALL-OBJECT-ASYNC-READY-CALLBACK"
-
    ;; gslist
    "MAP-SLIST" "PREPEND-TO-SLIST" "SLIST-FREE" "SLIST-FREE-FULL"
    "SLIST-LENGTH"
