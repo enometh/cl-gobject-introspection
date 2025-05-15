@@ -5,14 +5,15 @@
 		  (let ((sym (find-symbol x "CFFI-CALLBACK-MANAGER")))
 		    (assert sym)
 		    sym))
-		'("CALLBACK-MANAGER"
+		#1='("CALLBACK-MANAGER"
 		  "REGISTER-CALLBACK"
 		  "UNREGISTER-CALLBACK"
 		  "FIND-CALLBACK"
 		  "WITH-REGISTERED-CALLBACK"
 		  "FUNCALL-OBJECT-CALLBACK"
 		  "FREE-FUNCALL-OBJECT-CALLBACK"))
-	"GIR-LIB"))
+	"GIR-LIB")
+(export (mapcar (lambda (x) (find-symbol x "GIR-LIB")) #1#) "GIR-LIB"))
 
 
 ;; provide an interface similar to 1) cl-gobject-introspection-wrapper
