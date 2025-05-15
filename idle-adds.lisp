@@ -104,3 +104,44 @@
 
 #+nil
 (get-file-contents "/etc/passwd")
+
+(defun call-with-async-ready-callback
+    (obj method-name &key
+     (finisher-method-name
+      (concatenate 'string method-name "_finish"))
+     (finisher-thunk (lambda (&rest args) (car args))))
+  "method_name is the string name of the async function, typically ends
+in \"_async\".  finisher-method-name is the name of the async ready
+callback receiver. specify it it isn't \"method_name_async\".  Returns
+the results of calling finisher-thunk on the results of calling the
+finisher-method-name asynchronously.  This function is synchronous and
+should be wrapped in a block-idle-add if it should run on the main
+thread."
+  (let ((ret nil)
+	(main-loop (gir:invoke (*glib* "MainLoop" "new") nil nil)))
+    (flet ((finish (source async-result)
+	     (setq ret
+		   (multiple-value-call finisher-thunk
+		     (gir:invoke (source finisher-method-name) async-result)))
+	     (gir:invoke (main-loop "quit"))))
+      (gir-lib::with-registered-callback (loc) #'finish
+	(gir:invoke (obj method-name)
+	  nil
+	  (cffi:callback gir-lib::funcall-object-async-ready-callback)
+	  loc)
+	(gir:invoke (main-loop "run"))
+	ret))))
+
+(export 'call-with-async-ready-callback)
+
+#+nil
+(let* ((file (gir:invoke (*gio* "File" "new_for_path") "/etc/passwd")))
+   (call-with-async-ready-callback
+    file "load_contents_async"
+    :finisher-method-name "load_contents_finish"
+    :finisher-thunk
+    #'(lambda (ret contents etags-1)
+	(declare (ignore ret etags-1))
+	(coerce
+	 (map 'list 'code-char contents)
+	 'string))))
