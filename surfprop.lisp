@@ -85,7 +85,8 @@ handled.")
 	(plists-match-p target args :test #'foo-eql :exclude-keys '(:cmd) :require-all-p nil)
       (when (and (or matches-p empty-p)
 		 (if (setq cmd-1 (getf target :cmd))
-		     (setq ret (apply cmd-1 args))
+		     (with-simple-restart (cont "Skip Exec Processx Hook")
+		       (setq ret (apply cmd-1 args)))
 		     t))
 	(when ret (return ret))))))
 
@@ -230,7 +231,9 @@ should return T if it handles it (and stop further searching).")
 	(plists-match-p entry args :test #'equal :exclude-keys '(:cmd) :require-all-p nil)
       (when (and (or match-p empty-p)
 		 (if (setq cmd-1 (getf entry :cmd))
-		     (setq ret (apply cmd-1 args)) t))
+		     (setq ret (with-simple-restart (cont "Skip Exec Keymap Hook")
+				 (apply cmd-1 args)))
+		     t))
 	(when ret (return ret))))))
 
 #+nil
@@ -325,11 +328,11 @@ should return T if it handles it (and stop further searching).")
   (setprop "_SURF_URI" "_SURF_GO" "Go: ")
   t)
 
-(defun handle-surf-go (&key $xdisplay-ptr window-id atom)
-  (if (eql atom (xlib-xprop::intern-atom "_SURF_GO" :xdisplay-ptr $xdisplay-ptr
+(defun handle-surf-go (&key display-ptr window-id atom)
+  (if (eql atom (xlib-xprop::intern-atom "_SURF_GO" :xdisplay-ptr display-ptr
 					 :only-if-exists nil))
       (warn "handle-surf-go: ~S"
-	    (xlib-xprop::get-string-atom atom :xdisplay-ptr $xdisplay-ptr
+	    (xlib-xprop::get-string-atom atom :xdisplay-ptr display-ptr
 					 :xid window-id
 					 :string-type :utf8-string))))
 
