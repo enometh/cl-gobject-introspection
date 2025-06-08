@@ -161,3 +161,24 @@ or interface which implements the method."
 		      (cffi:foreign-funcall "g_type_class_get_instance_private_offset"
 			:pointer type-class-ptr
 			:int))))
+
+
+(export '(get-parent-class get-slot-ptr-at-offset))
+(defun get-parent-class (obj)
+  (make-instance 'gir::object-class
+    :info
+    (gir::repository-find-by-gtype
+     nil
+     (gir::g-type-parent (gir::gtype (if (cffi:pointerp obj)
+					 obj
+					 (gir::this-of obj)))))))
+
+(defun get-slot-ptr-at-offset (obj offset)
+  "beyond the parent instance"
+  (cffi:mem-aref (cffi:make-pointer (+ (cffi:pointer-address (if (cffi:pointerp obj)
+								 obj
+								 (gir::this-of obj)))
+				       (gir::g-type-query (get-parent-class obj)
+							  :instance-size)
+				       offset))
+		 :pointer))
