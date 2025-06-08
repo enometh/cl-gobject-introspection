@@ -146,6 +146,8 @@ or interface which implements the method."
    :pointer
    (find-vfunc-offset-recursive (gtype-of object-class) cname)))
 
+
+(export '(get-private-ptr))
 (defun get-private-ptr (obj-instance &optional (type-class nil type-class-supplied-p))
   (let* ((obj-ptr (this-of obj-instance))
 	 (type-class-ptr (cond ((not type-class-supplied-p)
@@ -159,5 +161,3 @@ or interface which implements the method."
 		      (cffi:foreign-funcall "g_type_class_get_instance_private_offset"
 			:pointer type-class-ptr
 			:int))))
-
-(export '(get-private-ptr))
