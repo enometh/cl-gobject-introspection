@@ -28,7 +28,7 @@
    (apply #'gir:require-namespace
 	  (if (featurep :wk)
 	      "WebKit2WebExtension"
-	      "WebKitWebExtension")
+	      "WebKitWebProcessExtension")
 	  (list
 	   (if (featurep :wk)
 	       "4.1"
