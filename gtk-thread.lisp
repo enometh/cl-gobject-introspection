@@ -36,9 +36,6 @@
 
 (defvar *gtk-main* (%make-gtk-main))
 
-(defun unix-errno ()
-  (cffi:mem-ref (cffi:foreign-funcall "__errno_location" :pointer) :int))
-
 (cffi:defcfun strerror :string (errno :int))
 
 (defvar *perror-signals-cerror* nil)
