@@ -54,19 +54,23 @@ in the CALLBACK-MANAGER."
 
 (defun unregister-callback (loc)
   (with-slots (lock queue free-list) *callback-manager*
-    (let ((index (cffi:mem-ref loc :int)))
-      (bordeaux-threads:with-lock-held (lock)
-	(push index free-list)
-	(setf (elt queue index) nil)))
-    (cffi:foreign-free loc)))
+    (bordeaux-threads:with-lock-held (lock)
+      (let ((index (cffi:mem-ref loc :int)))
+	(when (< index (length queue))
+	  (assert (not (find index free-list)))
+	  (push index free-list)
+	  (setf (elt queue index) nil)
+	  (cffi:foreign-free loc))))))
 
 (defun find-callback (loc)
   "Returns the lisp object registered with REGISTER-CALLBACK"
   (with-slots (lock queue free-list) *callback-manager*
-    (declare (ignorable free-list))
-    (let ((index (cffi:mem-ref loc :int)))
-      (bordeaux-threads:with-lock-held (lock)
-	(elt queue index)))))
+    (bordeaux-threads:with-lock-held (lock)
+      (let ((index (cffi:mem-ref loc :int)))
+	(cond ((< index (length queue))
+	       (assert (not (find index free-list)))
+	       (elt queue index))
+	      (t nil))))))
 
 (defmacro with-registered-callback ((loc-var) function &body body)
   `(let ((,loc-var (register-callback ,function)))
