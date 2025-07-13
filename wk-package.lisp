@@ -11,6 +11,7 @@
 (eval-when (load eval compile)
   (assert (not (featurep :no-gtk))))
 
+(progn ;eval-when (:load-toplevel :execute :compile-toplevel)
 (defvar *wk*
   (load-time-value
    (apply #'gir:require-namespace
@@ -41,7 +42,7 @@
 	  (list
 	   (if (featurep :wk)
 	       "4.1"
-	       "6.0")))))
+	       "6.0"))))))
 
 (export '(*wk* *wkext* *jsc*))
 

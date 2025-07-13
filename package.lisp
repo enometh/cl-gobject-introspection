@@ -61,7 +61,7 @@
 
 (in-package "GIR-LIB")
 
-(progn
+(eval-when (:load-toplevel :execute :compile-toplevel)
 (defvar *gio* (load-time-value (gir:require-namespace "Gio")))
 (defvar *glib* (load-time-value (gir:require-namespace "GLib")))
 (defvar *gobject* (load-time-value (gir:require-namespace "GObject"))))
@@ -75,11 +75,13 @@
 (defvar *cairo* (gir:require-namespace "cairo"))
 ||#
 
+(eval-when (:load-toplevel :execute :compile-toplevel)
 (defun featurep (x)
   (when (or (keywordp x)
 	    (setq x (find-symbol (symbol-name x) :keyword)))
-    (find x *features*)))
+    (find x *features*))))
 
+(eval-when (:load-toplevel :execute :compile-toplevel)
 (defvar *gtk* (unless (featurep :no-gtk)
 		(load-time-value
 		 (apply #'gir:require-namespace
@@ -101,14 +103,15 @@
 		    (load-time-value
 		     (apply #'gir:require-namespace
 			    "GdkX11"
-			    (if (featurep :wk) (list "3.0"))))))
+			    (if (featurep :wk) (list "3.0")))))))
 
 
 #+nil
 (import '(*gio* *glib* *gobject* *gtk* *gdk* *gdk-x11*) "CL-USER")
 
+(eval-when (:load-toplevel :execute :compile-toplevel)
 (defvar *gi-repository*
-  (load-time-value (gir:require-namespace "GIRepository" "2.0")))
+  (load-time-value (gir:require-namespace "GIRepository" "2.0"))))
 
 (defpackage "GIR-TEST"
   (:use "CL" "GIR" "GIR-LIB")
