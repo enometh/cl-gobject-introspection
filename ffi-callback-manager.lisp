@@ -45,12 +45,20 @@ pointer which is the address of an integer that identifies the object
 in the CALLBACK-MANAGER."
   (with-slots (queue free-list lock) *callback-manager*
     (bordeaux-threads:with-lock-held (lock)
+      (loop for i from 0
+	    for x across queue
+	    if (eql x function)
+	    do (return-from register-callback
+		 (values (cffi:foreign-alloc :int :initial-element i)
+			 nil)))
       (let* ((index (pop free-list)))
 	(if index
 	    (setf (elt queue index) function)
 	    (progn (setq index (length queue))
 		   (assert (= index (vector-push-extend function queue)))))
-	(cffi:foreign-alloc :int :initial-element index)))))
+	(values
+	 (cffi:foreign-alloc :int :initial-element index)
+	 t)))))
 
 (defun unregister-callback (loc)
   (with-slots (lock queue free-list) *callback-manager*
@@ -76,6 +84,19 @@ in the CALLBACK-MANAGER."
   `(let ((,loc-var (register-callback ,function)))
      (unwind-protect (progn ,@body)
        (unregister-callback ,loc-var))))
+
+(defun clear-callback-manager ()
+  (with-slots (queue free-list) *callback-manager*
+    (cffi:with-foreign-object (loc :int)
+      (loop for i from 0
+	    for x across queue
+	    unless (find i free-list)
+	    do (setf (cffi:mem-ref loc :int) i)
+	    (unregister-callback loc)))
+    (setq free-list nil)))
+
+#+nil
+(clear-callback-manager)
 
 #+nil ;; bootstrap
 (mapcar (lambda (x &aux s) (when (setq s (find-symbol x :gir-lib)))
