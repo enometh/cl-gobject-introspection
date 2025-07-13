@@ -80,25 +80,25 @@
 	    (setq x (find-symbol (symbol-name x) :keyword)))
     (find x *features*)))
 
-(defvar *gtk* (load-time-value
-	       (unless (featurep :no-gtk)
+(defvar *gtk* (unless (featurep :no-gtk)
+		(load-time-value
 		 (apply #'gir:require-namespace
 			"Gtk"
 			(if (featurep :wk) (list "3.0"))))))
 
-(defvar *gdk* (load-time-value
-	       (unless (featurep :no-gtk)
+(defvar *gdk* (unless (featurep :no-gtk)
+		(load-time-value
 		 (apply #'gir:require-namespace
 			"Gdk"
 			(if (featurep :wk) (list "3.0"))))))
 
-(defvar *cairo* (load-time-value
-		 (unless (featurep :no-gtk)
+(defvar *cairo* (unless (featurep :no-gtk)
+		  (load-time-value
 		   (apply #'gir:require-namespace "cairo" nil))))
 
 
-(defvar *gdk-x11* (load-time-value
-		   (unless (featurep :no-gtk)
+(defvar *gdk-x11* (unless (featurep :no-gtk)
+		    (load-time-value
 		     (apply #'gir:require-namespace
 			    "GdkX11"
 			    (if (featurep :wk) (list "3.0"))))))
