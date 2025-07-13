@@ -107,11 +107,6 @@
 	       (> (gir:invoke (*gtk* "get_minor_version")) 90)))
   (pushnew :gtk4 *features*))
 
-(defun featurep (x)
-  (when (or (keywordp x)
-	    (setq x (find-symbol (symbol-name x) :keyword)))
-    (find x *features*)))
-
 #-no-gtk
 (defun init-gtk ()
   (x11-init-threads)

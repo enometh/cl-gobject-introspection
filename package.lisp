@@ -75,7 +75,10 @@
 (defvar *cairo* (gir:require-namespace "cairo"))
 ||#
 
-(defun featurep (x) (find x *features*))
+(defun featurep (x)
+  (when (or (keywordp x)
+	    (setq x (find-symbol (symbol-name x) :keyword)))
+    (find x *features*)))
 
 (defvar *gtk* (load-time-value
 	       (unless (featurep :no-gtk)
