@@ -38,7 +38,13 @@
   (flags :int)
   (mode :int))
 
+;; bits/fcntl.h
 (defvar +O_RDWR+  #o00000002)
+(defvar +O_WRONLY+  #o00000001)
+(defvar +O_RDONLY+  #o00000000)
+(defvar +O_NONBLOCK+ #o04000)
+(defvar +PIPE-BUF+ 512)
+(defvar +S_IFMT+ #o0170000)
 
 (defun make-g-file-error (filename saved-errno &optional fmt-string &rest fmt-args)
   (gir:invoke (*glib* "Error" "new_literal")

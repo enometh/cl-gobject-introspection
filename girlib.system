@@ -55,6 +55,7 @@
 	       "plists-matching"
 	       #-no-gtk
 	       "surfprop"
+	       "fifo-listener"
                ))
 
 #+nil
