@@ -42,6 +42,7 @@
 	       "gdbus-server"
 	       "gstream"
 	       "glib-base"
+	       "miscfs"
 	       "glogger"
 	       "xlib-xprop"
 	       "inifile"
